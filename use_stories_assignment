@@ -1,0 +1,204 @@
+# RecruSearch User Stories & On-Chain Requirements
+## Proof-of-Concept (POC)
+
+## PART A: User Stories & On-Chain Requirements Document
+
+### 1.1 Core User Personas
+
+Based on RecruSearch's value Proposition- a privacy-first research participation protocol built on Solana using Anchor, the following are the core user personas:
+
+1. Academic Researchers in Sensitive Fields (Web3 native)
+2. Privacy-Conscious Participants / Participants from Sensitive Populations
+3. Project Admin / Developer 
+
+### 1.2 Key User Interaction Mapping (Proof-of-Concept)
+
+This mapping outlines the essential interactions required by each core user type prioritized for the initial proof-of-concept (PoC) of RecruSearch.
+
+#### 1. Academic & Web3-Native Researchers 
+*(Includes academic researchers, clinical investigators)*
+
+These users are responsible for creating and managing studies. Their interaction validates the utility of RecruSearch's smart contract logic, consent mechanisms, and data integrity model.
+
+**Core Functions:**
+- Create and configure studies (title, description, eligibility criteria, study timeline).
+- Define and enforce participant eligibility via basic logic or zero-knowledge proof systems.
+- Upload or link off-chain encrypted surveys or data collection instruments.
+- Fund participant incentives using SPL tokens or NFTs, with optional time-lock logic.
+- Monitor participant enrollment and encrypted data submissions.
+- Interact with on-chain consent NFTs and reward distribution triggers.
+- Export verifiable participation and consent records for reproducibility or governance purposes.
+
+#### 2. Privacy-Conscious Participants / Sensitive Populations 
+*(Includes individuals from stigmatized or high-risk communities such as trauma survivors, mental health populations, or identity-based marginalized groups)*
+
+These users validate the platform's privacy-first design, demonstrating that ethical data collection is possible without compromising user anonymity.
+
+**Core Functions:**
+- Connect anonymously using a wallet (e.g., Phantom) without sharing PII.
+- View and agree to a digitally signed, human-readable consent form.
+- Optionally generate and submit a zero-knowledge proof of eligibility.
+- Mint a verifiable Consent NFT representing informed consent and study entry.
+- Access and complete the encrypted off-chain survey or data submission process.
+- Receive a Completion NFT or token-based incentive upon submission.
+- Retain full control over participation records via wallet-based storage.
+
+#### 3. Project Admin / Developer 
+*(System operator responsible for infrastructure, testing, and deployment)*
+
+The developer is responsible for implementing and validating the full contract lifecycle, ensuring the system functions as intended under various real-world use cases.
+
+**Core Functions:**
+- Deploy and manage Anchor smart contracts for study lifecycle, consent handling, and reward logic.
+- Test full system flows: study creation → participant consent → data submission → reward execution.
+- Monitor PDA (Program Derived Address) state changes, token accounts, and escrow activity.
+- Implement, test, and debug eligibility verification logic, including optional zk-proof validation.
+- Integrate front-end wallet interfaces and ensure seamless UX across participant and researcher flows.
+- Benchmark and log performance metrics across key interactions (e.g., consent NFT minting, time-locked vesting).
+- Maintain a secure, auditable, and modular development environment for future extension.
+
+### 1.3 Potential On-Chain Requirements
+
+## Researcher Stories
+
+**R1:** "The user provides the study name, description, and the time window it will run, so participants know what it's about and when it starts or ends."
+- Create a new on-chain StudyAccount to hold the study data.
+- Store the researcher's wallet address as the authority.
+- Include fields for title, description, start time, and end time.
+- Initialize the study status as "Draft" or "Unpublished."
+
+**R2:** "User uploads or links to a consent document so participants can read and understand the terms before joining."
+- Add a field to StudyAccount for a URI or hash of the off-chain consent document.
+- Store the content hash for version verification.
+- Lock consent reference once the study is published.
+
+**R3:** "User defines who is allowed to join the study, such as by age or condition, so that only eligible participants take part."
+- Add a field to StudyAccount for storing eligibility rules (e.g., Merkle root or hash).
+- Store whether zero-knowledge proof is required for eligibility.
+- Eligibility conditions should be immutable post-publication.
+
+**R4:** "User deposits reward tokens into a secure vault linked to the study so eligible participants can be paid automatically after completing their task."
+- Create a RewardVault account tied to the study ID and the researcher's address.
+- Accept SPL tokens or NFTs into the vault via CPI.
+- Track the number of tokens per participant for reward distribution.
+- Lock withdrawal unless participant completion is verified.
+
+**R5:** "User makes the study publicly visible so participants can discover and join it."
+- Update a status field in the StudyAccount to "Published."
+- Validate that all required data (metadata, consent, reward vault) is complete.
+- Emit an on-chain event for front-end indexing.
+
+**R6:** "User checks how many people have officially joined by reviewing how many Consent NFTs have been issued."
+- Maintain a counter in StudyAccount that increments each time a Consent NFT is minted.
+- Emit an event or make count publicly queryable.
+
+**R7:** "User views how many participants completed the task to track completion rates."
+- Maintain a separate counter in StudyAccount for completed submissions.
+- Increment this counter upon verified survey completion and reward claim.
+
+**R8:** "User downloads records showing who joined and completed the study to support audit, reproducibility, or reporting."
+- Allow querying of Consent NFTs by study ID.
+- Store metadata such as timestamp, wallet address, and completion flag.
+- Optionally hash and link participant submission to Consent NFT for verification.
+
+## Participant Stories
+
+**P1:** "User connects to the platform using a wallet, without entering name or email, to remain anonymous."
+- No on-chain storage required; wallet signature is used for authentication.
+- Avoid storing any user metadata linked to identity.
+
+**P2:** "User views and reads the consent form before joining any study to make an informed choice."
+- Front-end fetches and displays the consent_uri stored in StudyAccount.
+
+**P3:** "User confirms acceptance of the consent form to officially agree to take part."
+- Record the acceptance via a Consent NFT mint.
+- Link the NFT to the study ID, wallet address, and consent document hash.
+
+**P4:** "User proves they meet study requirements (e.g., over 18) without revealing personal information."
+- Accept a zero-knowledge proof or Merkle inclusion proof as input.
+- Validate the proof against eligibility stored in StudyAccount.
+- Store proof status in NFT metadata or transaction log.
+
+**P5:** "User receives a Consent NFT after accepting consent and passing eligibility, allowing access to the study."
+- Mint a unique ConsentNFT using PDA seeds `["consent", wallet, study_id]`.
+- Store timestamp, study ID, eligibility flag in the metadata.
+- Ensure that only one NFT can be minted per wallet per study.
+
+**P6:** "User opens the study task or survey to begin responding."
+- Require wallet to show ownership of a valid Consent NFT for access.
+- Validate that the study is currently active (status check).
+
+**P7:** "User submits survey responses in a private, secure way to protect sensitive answers."
+- Encrypt data client-side using researcher's public key.
+- Upload encrypted data to IPFS/Arweave.
+- Create SubmissionAccount PDA linked to wallet and study ID.
+- Store submission timestamp and hash of encrypted data.
+
+**P8:** "User links the response to their Consent NFT to confirm legitimate participation."
+- Submission must include reference to the Consent NFT mint address.
+- Check NFT validity and ownership before allowing submission.
+- Prevent multiple submissions using the same NFT.
+
+**P9:** "User receives tokens or a badge after completing the task."
+- Verify submission and Consent NFT validity.
+- Distribute SPL tokens from the reward vault to participant's wallet.
+- Optionally mint a CompletionNFT tied to the study and wallet.
+- Update StudyAccount completion counter.
+
+**P10:** "User is blocked from joining or claiming rewards more than once in the same study."
+- Prevent multiple Consent NFTs using PDA uniqueness.
+- Prevent creation of multiple SubmissionAccounts per wallet per study.
+- Enforce one-time reward distribution logic.
+
+## Developer Stories
+
+**D1:** "User deploys programs to manage studies, NFTs, rewards, and submissions to run logic on-chain."
+
+Anchor programs for:
+- `study.rs`: study creation, updates
+- `nft.rs`: minting and constraints
+- `vault.rs`: token escrow and release
+- `submission.rs`: encrypted response tracking
+
+**D2:** "User prevents any wallet from minting more than one Consent NFT per study."
+- Check if PDA ConsentNFT already exists before minting.
+- Abort mint if Consent NFT is already present for that wallet/study pair.
+
+**D3:** "User creates a secure vault where researchers deposit tokens and rewards are released only after task completion."
+- Create RewardVault PDA owned by study authority.
+- Lock tokens upon deposit using CPI.
+- Unlock and transfer to participants only after verification.
+
+**D4:** "User ensures each submission is linked to a Consent NFT for validation."
+- Require input of Consent NFT mint address on submission.
+- Check NFT ownership and metadata consistency.
+- Prevent submission without valid NFT.
+
+**D5:** "User connects IPFS or Arweave for off-chain encrypted storage while keeping references on-chain."
+- Store content hash or CID in SubmissionAccount.
+- Validate hash format on write.
+- Emit event with CID for off-chain access.
+
+**D6:** "User tests complete flows for researchers and participants to confirm expected behavior."
+
+Simulate:
+- study creation
+- NFT mint
+- survey submission
+- reward release
+
+Test all edge cases: duplicate mints, invalid proofs, expired studies.
+
+**D7:** "User automates state transitions (open, active, closed) based on study schedule."
+- Use Solana's Clock sysvar to compare current time with study windows.
+- Automatically reject actions (mint, submission) if outside valid time.
+- Optionally log transitions for external observers.
+
+
+
+
+
+
+
+
+
