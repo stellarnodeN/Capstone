@@ -1,6 +1,10 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Mint};
-use anchor_spl::associated_token::AssociatedToken;
+
+use mpl_core::{
+    ID as MPL_CORE_ID,
+    instructions::{CreateV2, CreateV2InstructionArgs},
+    types::DataState,
+};
 use crate::state::{
     study::{StudyAccount, StudyStatus},
     consent_nft::ConsentNFTAccount,
@@ -32,31 +36,18 @@ pub struct MintConsentNFT<'info> {
     )]
     pub consent_nft_account: Account<'info, ConsentNFTAccount>,
 
-    /// The NFT mint account that will represent the consent
-    #[account(
-        init,
-        payer = participant,
-        mint::decimals = 0,
-        mint::authority = consent_nft_account,
-        mint::freeze_authority = consent_nft_account
-    )]
-    pub nft_mint: Account<'info, Mint>,
-
-    /// Participant's token account where the consent NFT will be minted
-    #[account(
-        init,
-        payer = participant,
-        associated_token::mint = nft_mint,
-        associated_token::authority = participant
-    )]
-    pub participant_token_account: Account<'info, TokenAccount>,
+    /// Core NFT Asset account (single account design)
+    #[account(mut)]
+    pub core_asset: Signer<'info>,
 
     #[account(mut)]
     pub participant: Signer<'info>,
 
     pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
+    
+    /// CHECK: Metaplex Core Program
+    #[account(address = MPL_CORE_ID)]
+    pub mpl_core_program: UncheckedAccount<'info>,
 }
 
 impl<'info> MintConsentNFT<'info> {
@@ -123,7 +114,7 @@ impl<'info> MintConsentNFT<'info> {
         consent_nft_account.consent_document_version = study_account.consent_document_hash;
         
         // Enhanced metadata fields for Metaplex compatibility
-        consent_nft_account.study_title = study_title;
+        consent_nft_account.study_title = study_title.clone();
         consent_nft_account.study_type = study_type;
         consent_nft_account.image_uri = image_uri;
         consent_nft_account.privacy_level = if study_account.requires_zk_proof {
@@ -149,19 +140,38 @@ impl<'info> MintConsentNFT<'info> {
         ];
         let signer_seeds = &[&consent_nft_seeds[..]];
 
-        // Mint exactly 1 NFT to represent consent
-        let mint_ix = token::MintTo {
-            mint: self.nft_mint.to_account_info(),
-            to: self.participant_token_account.to_account_info(),
-            authority: consent_nft_account.to_account_info(),
-        };
-        token::mint_to(
-            CpiContext::new_with_signer(
-                self.token_program.to_account_info(),
-                mint_ix,
-                signer_seeds,
-            ),
-            1, // Mint exactly 1 NFT
+        // Create Core NFT Asset using Metaplex Core (single account design)
+        let nft_name = format!("Consent - {}", &study_title);
+        let nft_uri = format!("https://recrusearch.com/metadata/consent/{}", study_id);
+
+        // Use Metaplex Core to create the NFT asset manually
+        let create_ix = CreateV2 {
+            asset: self.core_asset.key(),
+            collection: None,
+            authority: None,
+            payer: self.participant.key(),
+            owner: Some(self.participant.key()),
+            update_authority: Some(consent_nft_account.key()),
+            system_program: self.system_program.key(),
+            log_wrapper: None,
+        }.instruction(CreateV2InstructionArgs {
+            data_state: DataState::AccountState,
+            name: nft_name,
+            uri: nft_uri,
+            plugins: None,
+            external_plugin_adapters: None,
+        });
+
+        anchor_lang::solana_program::program::invoke_signed(
+            &create_ix,
+            &[
+                self.core_asset.to_account_info(),
+                self.participant.to_account_info(),
+                consent_nft_account.to_account_info(),
+                self.system_program.to_account_info(),
+                self.mpl_core_program.to_account_info(),
+            ],
+            signer_seeds,
         )?;
 
         // Update study participant count

@@ -68,6 +68,9 @@ pub enum RecruSearchError {
     #[msg("Invalid or revoked consent")]
     InvalidOrRevokedConsent,
     
+    #[msg("Consent has already been revoked")]
+    ConsentAlreadyRevoked,
+    
     #[msg("Invalid data format or IPFS CID")]
     InvalidDataFormat,
     

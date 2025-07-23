@@ -106,4 +106,8 @@ pub mod recru_search {
     pub fn transition_study_state(ctx: Context<TransitionStudyState>, study_id: u64) -> Result<()> {
         ctx.accounts.transition_study_state(study_id)
     }
+
+    pub fn revoke_consent(ctx: Context<RevokeConsent>, study_id: u64) -> Result<()> {
+        ctx.accounts.revoke_consent(study_id)
+    }
 }

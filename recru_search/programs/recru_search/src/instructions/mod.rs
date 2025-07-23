@@ -6,6 +6,7 @@ pub mod submit_encrypted_data;
 pub mod distribute_reward;
 pub mod close_study;
 pub mod transition_study_state;
+pub mod revoke_consent;
 
 pub use create_study::*;
 pub use publish_study::*;
@@ -15,3 +16,4 @@ pub use submit_encrypted_data::*;
 pub use distribute_reward::*;
 pub use close_study::*;
 pub use transition_study_state::*;
+pub use revoke_consent::*;
