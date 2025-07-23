@@ -31,7 +31,7 @@ impl<'info> CloseStudy<'info> {
         require!(
             matches!(
                 study_account.status,
-                StudyStatus::Published | StudyStatus::DataCollection
+                StudyStatus::Published | StudyStatus::Active
             ),
             RecruSearchError::InvalidStatusTransition
         );

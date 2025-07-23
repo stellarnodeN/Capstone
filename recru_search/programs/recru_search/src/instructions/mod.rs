@@ -5,6 +5,7 @@ pub mod mint_consent_nft;
 pub mod submit_encrypted_data;
 pub mod distribute_reward;
 pub mod close_study;
+pub mod transition_study_state;
 
 pub use create_study::*;
 pub use publish_study::*;
@@ -13,3 +14,4 @@ pub use mint_consent_nft::*;
 pub use submit_encrypted_data::*;
 pub use distribute_reward::*;
 pub use close_study::*;
+pub use transition_study_state::*;

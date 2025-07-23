@@ -58,7 +58,7 @@ impl<'info> SubmitEncryptedData<'info> {
 
         // Validate that data collection is still open for this study
         require!(
-            matches!(study_account.status, StudyStatus::Published | StudyStatus::DataCollection) 
+            matches!(study_account.status, StudyStatus::Published | StudyStatus::Active) 
                 && clock.unix_timestamp <= study_account.data_collection_end,
             RecruSearchError::DataCollectionClosed
         );

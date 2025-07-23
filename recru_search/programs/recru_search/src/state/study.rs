@@ -1,15 +1,14 @@
 use anchor_lang::prelude::*;
 
 // Enum to track the current state of a research study
-// Each study moves through these states in a specific order
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, InitSpace)]
+// Each study moves through these states in a specific order: Draft → Published → Active → Closed → Archived
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, InitSpace, Debug)]
 pub enum StudyStatus {
-    Draft,          // Study created but not yet published (can be edited)
-    Published,      // Study is live and accepting participants
-    DataCollection, // Study is in data collection phase
-    Active,         // Study in data collection phase (alias for DataCollection)
-    Closed,         // Study completed, no new participants allowed
-    Archived,       // Study archived for long-term storage
+    Draft,      // Study created but not yet published (can be edited)
+    Published,  // Study is published and accepting participants (enrollment phase)
+    Active,     // Study is in active data collection phase
+    Closed,     // Study completed, no new participants or submissions allowed
+    Archived,   // Study archived for long-term storage and compliance
 }
 
 impl Default for StudyStatus {

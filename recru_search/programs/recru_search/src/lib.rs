@@ -102,4 +102,8 @@ pub mod recru_search {
     pub fn close_study(ctx: Context<CloseStudy>, study_id: u64) -> Result<()> {
         ctx.accounts.close_study(study_id)
     }
+
+    pub fn transition_study_state(ctx: Context<TransitionStudyState>, study_id: u64) -> Result<()> {
+        ctx.accounts.transition_study_state(study_id)
+    }
 }

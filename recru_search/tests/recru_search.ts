@@ -327,13 +327,20 @@ describe("recru_search", () => {
         initialSupply
       );
 
-      // Derive vault accounts - Fix the PDA derivation to match instruction file
+      // Derive vault accounts
       const [rewardVaultPda] = PublicKey.findProgramAddressSync(
         [Buffer.from("vault"), studyPda.toBuffer()],
         program.programId
       );
 
-      const vaultTokenAccount = Keypair.generate();
+      // Create vault token account owned by the reward vault PDA
+      const vaultTokenAccount = await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        researcher,
+        rewardMint,
+        rewardVaultPda,
+        true // allowOwnerOffCurve - allows PDA as owner
+      );
 
       // Create reward vault
       const initialDeposit = 15000000; // 15M tokens (more than required 10M)
@@ -343,14 +350,14 @@ describe("recru_search", () => {
         .accountsPartial({
           studyAccount: studyPda,
           rewardVault: rewardVaultPda,
-          vaultTokenAccount: vaultTokenAccount.publicKey,
+          vaultTokenAccount: vaultTokenAccount.address,
           rewardMint: rewardMint,
           researcherTokenAccount: researcherTokenAccount.address,
           researcher: researcher.publicKey,
           systemProgram: SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
-        .signers([researcher, vaultTokenAccount])
+        .signers([researcher]) // Remove vaultTokenAccount from signers
         .rpc();
 
       console.log("Create reward vault tx:", tx);
@@ -486,6 +493,150 @@ describe("recru_search", () => {
       // This test would require setting up the full flow 
       // For now, let's skip to keep tests focused on core functionality
       console.log("Skipping complex integration test for distribute_reward");
+    });
+  });
+
+  describe("transition_study_state", () => {
+    it("Automatically transitions study from Published to Active", async () => {
+      const researcher = Keypair.generate();
+      await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
+      await provider.connection.confirmTransaction(
+        await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
+      );
+
+      const studyId = Math.floor(Math.random() * 1000000);
+      const currentTime = Math.floor(Date.now() / 1000);
+
+      const [studyPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("study"), researcher.publicKey.toBuffer(), new anchor.BN(studyId).toArrayLike(Buffer, "le", 8)],
+        program.programId
+      );
+
+      // Create study with short enrollment period (5 seconds)
+      await program.methods
+        .createStudy(
+          new anchor.BN(studyId), "Auto Transition Test", "Test Description",
+          new anchor.BN(currentTime + 5), // enrollment start in 5 seconds
+          new anchor.BN(currentTime + 10), // enrollment end in 10 seconds
+          new anchor.BN(currentTime + 20), // data collection end in 20 seconds
+          100, new anchor.BN(1000000)
+        )
+        .accountsPartial({ 
+          studyAccount: studyPda, 
+          researcher: researcher.publicKey, 
+          systemProgram: SystemProgram.programId 
+        })
+        .signers([researcher])
+        .rpc();
+
+      // Publish the study
+      await program.methods
+        .publishStudy(new anchor.BN(studyId))
+        .accountsPartial({ 
+          studyAccount: studyPda, 
+          researcher: researcher.publicKey 
+        })
+        .signers([researcher])
+        .rpc();
+
+      // Verify study is published
+      let studyAccount = await program.account.studyAccount.fetch(studyPda);
+      expect(studyAccount.status).to.deep.equal({ published: {} });
+
+      // Wait for enrollment period to end (12 seconds total)
+      console.log("Waiting for enrollment period to end...");
+      await new Promise(resolve => setTimeout(resolve, 12000));
+
+      // Trigger automatic transition
+      const tx = await program.methods
+        .transitionStudyState(new anchor.BN(studyId))
+        .accountsPartial({
+          studyAccount: studyPda,
+        })
+        .rpc();
+
+      console.log("Transition study state tx:", tx);
+
+      // Verify study transitioned to Active
+      studyAccount = await program.account.studyAccount.fetch(studyPda);
+      expect(studyAccount.status).to.deep.equal({ active: {} });
+    });
+
+    it("Automatically transitions study from Active to Closed", async () => {
+      const researcher = Keypair.generate();
+      await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
+      await provider.connection.confirmTransaction(
+        await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
+      );
+
+      const studyId = Math.floor(Math.random() * 1000000);
+      const currentTime = Math.floor(Date.now() / 1000);
+
+      const [studyPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("study"), researcher.publicKey.toBuffer(), new anchor.BN(studyId).toArrayLike(Buffer, "le", 8)],
+        program.programId
+      );
+
+      // Create study with very short periods
+      await program.methods
+        .createStudy(
+          new anchor.BN(studyId), "Active to Closed Test", "Test Description",
+          new anchor.BN(currentTime + 2), // enrollment start in 2 seconds
+          new anchor.BN(currentTime + 4), // enrollment end in 4 seconds  
+          new anchor.BN(currentTime + 8), // data collection end in 8 seconds
+          100, new anchor.BN(1000000)
+        )
+        .accountsPartial({ 
+          studyAccount: studyPda, 
+          researcher: researcher.publicKey, 
+          systemProgram: SystemProgram.programId 
+        })
+        .signers([researcher])
+        .rpc();
+
+      // Publish the study
+      await program.methods
+        .publishStudy(new anchor.BN(studyId))
+        .accountsPartial({ 
+          studyAccount: studyPda, 
+          researcher: researcher.publicKey 
+        })
+        .signers([researcher])
+        .rpc();
+
+      // Wait for enrollment to end and transition to Active
+      console.log("Waiting for enrollment period to end...");
+      await new Promise(resolve => setTimeout(resolve, 6000));
+
+      // First transition: Published → Active
+      await program.methods
+        .transitionStudyState(new anchor.BN(studyId))
+        .accountsPartial({
+          studyAccount: studyPda,
+        })
+        .rpc();
+
+      // Verify study is now Active
+      let studyAccount = await program.account.studyAccount.fetch(studyPda);
+      expect(studyAccount.status).to.deep.equal({ active: {} });
+
+      // Wait for data collection to end
+      console.log("Waiting for data collection period to end...");
+      await new Promise(resolve => setTimeout(resolve, 4000));
+
+      // Second transition: Active → Closed
+      const tx = await program.methods
+        .transitionStudyState(new anchor.BN(studyId))
+        .accountsPartial({
+          studyAccount: studyPda,
+        })
+        .rpc();
+
+      console.log("Transition to Closed tx:", tx);
+
+      // Verify study transitioned to Closed
+      studyAccount = await program.account.studyAccount.fetch(studyPda);
+      expect(studyAccount.status).to.deep.equal({ closed: {} });
     });
   });
 
