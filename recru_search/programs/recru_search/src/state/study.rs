@@ -11,12 +11,6 @@ pub enum StudyStatus {
     Archived,   // Study archived for long-term storage and compliance
 }
 
-impl Default for StudyStatus {
-    fn default() -> Self {
-        StudyStatus::Draft  // New studies start as drafts
-    }
-}
-
 // Main account that stores all study information and configuration
 // This is the central hub for each research study
 #[account]
@@ -35,6 +29,17 @@ pub struct StudyAccount {
     pub eligibility_merkle_root: [u8; 32], // Root hash for verifying participant eligibility (ZK proofs)
     pub requires_zk_proof: bool,          // Whether participants need zero-knowledge proof of eligibility
     
+    // Eligibility Criteria (User Story #2 - High Priority)
+    pub min_age: Option<u8>,              // Minimum age requirement (None = no limit)
+    pub max_age: Option<u8>,              // Maximum age requirement (None = no limit)
+    pub requires_wallet_verification: bool, // Whether wallet needs to be verified
+    pub min_wallet_age_days: Option<u32>, // Minimum wallet age in days
+    #[max_len(10)]
+    pub excluded_previous_studies: Vec<u64>, // Study IDs participant cannot have joined before
+    #[max_len(200)]
+    pub custom_eligibility_logic: String, // Custom eligibility criteria (serialized JSON)
+    pub eligibility_expires_at: Option<i64>, // When eligibility verification expires
+    
     // Time-based study management - all times are Unix timestamps
     pub enrollment_start: i64,            // When participants can start joining
     pub enrollment_end: i64,              // Last moment for new participants to join
@@ -51,4 +56,4 @@ pub struct StudyAccount {
     pub reward_vault: Pubkey,             // Address of the token vault holding participant rewards
     pub created_at: i64,                  // When this study was first created
     pub bump: u8,                         // PDA bump seed for account creation
-} 
+}

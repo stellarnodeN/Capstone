@@ -1,16 +1,14 @@
 #![allow(unexpected_cfgs)]
 #![allow(deprecated)]
+use anchor_lang::prelude::*;
 
 pub mod constants;
 pub mod error;
 pub mod instructions;
 pub mod state;
 
-use anchor_lang::prelude::*;
-
 pub use constants::*;
 pub use instructions::*;
-pub use state::*;
 
 declare_id!("6QUDidj9eAByDn5kqSrge47qsHWxv2b6yTxZuqt7sDVU");
 
@@ -18,96 +16,67 @@ declare_id!("6QUDidj9eAByDn5kqSrge47qsHWxv2b6yTxZuqt7sDVU");
 pub mod recru_search {
     use super::*;
 
-    pub fn create_study(
-        ctx: Context<CreateStudy>,
-        study_id: u64,
-        title: String,
-        description: String,
-        enrollment_start: i64,
-        enrollment_end: i64,
-        data_collection_end: i64,
-        max_participants: u32,
-        reward_amount_per_participant: u64,
-    ) -> Result<()> {
-        ctx.accounts.create_study(
-            study_id,
-            title,
-            description,
-            enrollment_start,
-            enrollment_end,
-            data_collection_end,
-            max_participants,
-            reward_amount_per_participant,
-            &ctx.bumps,
-        )
+    pub fn initialize_protocol(ctx: Context<InitializeProtocol>, protocol_fee_basis_points: Option<u16>, min_study_duration: Option<u32>, max_study_duration: Option<u32>) -> Result<()> {
+        ctx.accounts.initialize_protocol(protocol_fee_basis_points, min_study_duration, max_study_duration, &ctx.bumps)
     }
 
-    pub fn publish_study(ctx: Context<PublishStudy>, study_id: u64) -> Result<()> {
-        ctx.accounts.publish_study(study_id)
+    pub fn create_study(ctx: Context<CreateStudy>, study_id: u64, title: String, description: String, enrollment_start: i64, enrollment_end: i64, data_collection_end: i64, max_participants: u32, reward_amount: u64) -> Result<()> {
+        ctx.accounts.create_study(study_id, title, description, enrollment_start, enrollment_end, data_collection_end, max_participants, reward_amount, &ctx.bumps)
     }
 
-    pub fn create_reward_vault(
-        ctx: Context<CreateRewardVault>,
-        study_id: u64,
-        initial_deposit: u64,
-    ) -> Result<()> {
+    pub fn publish_study(ctx: Context<PublishStudy>) -> Result<()> {
+        ctx.accounts.publish_study()
+    }
+
+    pub fn close_study(ctx: Context<CloseStudy>) -> Result<()> {
+        ctx.accounts.close_study()
+    }
+
+    pub fn transition_study_state(ctx: Context<TransitionStudyState>) -> Result<()> {
+        ctx.accounts.transition_study_state()
+    }
+
+    pub fn set_eligibility_criteria(ctx: Context<SetEligibilityCriteria>, study_id: u64, criteria: Vec<u8>) -> Result<()> {
+        let eligibility_criteria: eligibility::EligibilityCriteria = eligibility::EligibilityCriteria::try_from_slice(&criteria).map_err(|_| error::RecruSearchError::InvalidParameterValue)?;
+        ctx.accounts.set_eligibility_criteria(study_id, eligibility_criteria)
+    }
+
+    pub fn verify_eligibility(ctx: Context<VerifyEligibility>, study_id: u64, participant_info: Vec<u8>) -> Result<bool> {
+        let info: eligibility::ParticipantInfo = eligibility::ParticipantInfo::try_from_slice(&participant_info).map_err(|_| error::RecruSearchError::InvalidParameterValue)?;
+        ctx.accounts.verify_eligibility(study_id, info)
+    }
+
+    pub fn verify_eligibility_with_zk(ctx: Context<VerifyEligibilityWithZK>, study_id: u64, participant_info: Vec<u8>, zk_proof: Vec<u8>) -> Result<bool> {
+        let info: eligibility::ParticipantInfo = eligibility::ParticipantInfo::try_from_slice(&participant_info).map_err(|_| error::RecruSearchError::InvalidParameterValue)?;
+        let proof: eligibility::EligibilityZKProof = eligibility::EligibilityZKProof::try_from_slice(&zk_proof).map_err(|_| error::RecruSearchError::InvalidParameterValue)?;
+        ctx.accounts.verify_eligibility_with_zk(study_id, info, proof)
+    }
+
+    pub fn mint_consent_nft(ctx: Context<MintConsentNFT>, study_id: u64, eligibility_proof: Vec<u8>) -> Result<()> {
+        ctx.accounts.mint_consent_nft(study_id, eligibility_proof)
+    }
+
+    pub fn revoke_consent(ctx: Context<RevokeConsent>) -> Result<()> {
+        ctx.accounts.revoke_consent()
+    }
+
+    pub fn submit_data(ctx: Context<SubmitData>, encrypted_data_hash: [u8; 32], ipfs_cid: String) -> Result<()> {
+        ctx.accounts.submit_data(encrypted_data_hash, ipfs_cid, &ctx.bumps)
+    }
+
+    pub fn create_reward_vault(ctx: Context<CreateRewardVault>, study_id: u64, initial_deposit: u64) -> Result<()> {
         ctx.accounts.create_reward_vault(study_id, initial_deposit, &ctx.bumps)
     }
 
-    pub fn mint_consent_nft(
-        ctx: Context<MintConsentNFT>,
-        study_id: u64,
-        eligibility_proof: Option<[u8; 32]>,
-        study_title: String,
-        study_type: String,
-        image_uri: String,
-    ) -> Result<()> {
-        ctx.accounts.mint_consent_nft(
-            study_id,
-            eligibility_proof,
-            study_title,
-            study_type,
-            image_uri,
-            &ctx.bumps,
-        )
+    pub fn distribute_reward(ctx: Context<DistributeReward>) -> Result<()> {
+        ctx.accounts.distribute_reward(&ctx.bumps)
     }
 
-    pub fn submit_encrypted_data(
-        ctx: Context<SubmitEncryptedData>,
-        study_id: u64,
-        encrypted_data_hash: [u8; 32],
-        ipfs_cid: String,
-    ) -> Result<()> {
-        ctx.accounts.submit_encrypted_data(study_id, encrypted_data_hash, ipfs_cid, &ctx.bumps)
+    pub fn create_survey_schema(ctx: Context<CreateSurveySchema>, study_id: u64, survey_title: String, survey_description: String, question_count: u32, estimated_duration_minutes: u32, schema_ipfs_cid: String, requires_encryption: bool, supports_file_uploads: bool, anonymous_responses: bool) -> Result<()> {
+        ctx.accounts.create_survey_schema(study_id, survey_title, survey_description, question_count, estimated_duration_minutes, schema_ipfs_cid, requires_encryption, supports_file_uploads, anonymous_responses, &ctx.bumps)
     }
 
-    pub fn distribute_reward(
-        ctx: Context<DistributeReward>,
-        study_id: u64,
-        study_title: String,
-        study_type: String,
-        study_duration_days: String,
-        image_uri: String,
-    ) -> Result<()> {
-        ctx.accounts.distribute_reward(
-            study_id,
-            study_title,
-            study_type,
-            study_duration_days,
-            image_uri,
-            &ctx.bumps,
-        )
-    }
-
-    pub fn close_study(ctx: Context<CloseStudy>, study_id: u64) -> Result<()> {
-        ctx.accounts.close_study(study_id)
-    }
-
-    pub fn transition_study_state(ctx: Context<TransitionStudyState>, study_id: u64) -> Result<()> {
-        ctx.accounts.transition_study_state(study_id)
-    }
-
-    pub fn revoke_consent(ctx: Context<RevokeConsent>, study_id: u64) -> Result<()> {
-        ctx.accounts.revoke_consent(study_id)
+    pub fn finalize_survey_schema(ctx: Context<FinalizeSurveySchema>, study_id: u64) -> Result<()> {
+        ctx.accounts.finalize_survey_schema(study_id)
     }
 }

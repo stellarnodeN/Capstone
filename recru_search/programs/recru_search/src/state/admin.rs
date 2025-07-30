@@ -1,10 +1,10 @@
 use anchor_lang::prelude::*;
 
-// Global configuration account for the entire RecruSearch protocol
+// Admin configuration account for the entire RecruSearch protocol
 // This stores protocol-wide settings and is owned by the protocol administrator
 #[account]
 #[derive(InitSpace)]
-pub struct GlobalState {
+pub struct AdminState {
     pub protocol_admin: Pubkey,           // Wallet address of the protocol administrator
     pub protocol_fee_basis_points: u16,   // Protocol fee (in basis points, e.g., 100 = 1%)
     pub min_study_duration: u32,          // Minimum required study duration in seconds

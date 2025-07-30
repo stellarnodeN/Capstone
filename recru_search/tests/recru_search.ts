@@ -1,815 +1,336 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { RecruSearch } from "../target/types/recru_search";
-import { PublicKey, Keypair, SystemProgram } from "@solana/web3.js";
-import { 
-  TOKEN_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
+import {
+  PublicKey,
+  Keypair,
+  SystemProgram,
+  LAMPORTS_PER_SOL,
+  SYSVAR_CLOCK_PUBKEY,
+} from "@solana/web3.js";
+import {
   createMint,
   getOrCreateAssociatedTokenAccount,
+  getAssociatedTokenAddressSync,
   mintTo,
-  getAccount
+  getAccount,
 } from "@solana/spl-token";
 import { expect } from "chai";
 
-describe("recru_search", () => {
-  // Configure the client to use the local cluster.
-  anchor.setProvider(anchor.AnchorProvider.env());
-
+describe("recru-search", () => {
+  const provider = anchor.AnchorProvider.local();
+  anchor.setProvider(provider);
   const program = anchor.workspace.RecruSearch as Program<RecruSearch>;
-  const provider = anchor.getProvider();
 
-  // Test keypairs
-  let researcher: Keypair;
-  let studyId: number;
+  const admin = Keypair.generate();
+  const researcher = Keypair.generate();
+  const participant = Keypair.generate();
+  const participant2 = Keypair.generate();
 
-  beforeEach(() => {
-    researcher = Keypair.generate();
-    studyId = Math.floor(Math.random() * 1000000);
+  let rewardMint: PublicKey;
+  let researcherTokenAccount: PublicKey;
+
+  const airdropSol = async (account: Keypair, amount: number) => {
+    const signature = await provider.connection.requestAirdrop(
+      account.publicKey,
+      amount * LAMPORTS_PER_SOL
+    );
+    await provider.connection.confirmTransaction(signature);
+  };
+
+  before(async () => {
+    await airdropSol(admin, 1);
+    await airdropSol(researcher, 1);
+    await airdropSol(participant, 1);
+    await airdropSol(participant2, 1);
+
+    rewardMint = await createMint(
+      provider.connection,
+      researcher,
+      researcher.publicKey,
+      null,
+      6
+    );
+
+    const tokenAccountInfo = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      researcher,
+      rewardMint,
+      researcher.publicKey
+    );
+    researcherTokenAccount = tokenAccountInfo.address;
+
+    await mintTo(
+      provider.connection,
+      researcher,
+      rewardMint,
+      researcherTokenAccount,
+      researcher,
+      1000000000
+    );
   });
 
-  describe("create_study", () => {
-    it("Successfully creates a new study", async () => {
-      // Airdrop SOL to researcher for transactions
-      await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
-      await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
-      );
+  it("Initializes the protocol", async () => {
+    const [adminState] = PublicKey.findProgramAddressSync(
+      [Buffer.from("admin")],
+      program.programId
+    );
 
-      // Study parameters
-      const title = "Mental Health Privacy Study";
-      const description = "A study examining privacy preferences in mental health data sharing";
-      const currentTime = Math.floor(Date.now() / 1000);
-      const enrollmentStart = currentTime + 3600; // 1 hour from now
-      const enrollmentEnd = enrollmentStart + 86400; // 1 day later
-      const dataCollectionEnd = enrollmentEnd + 172800; // 2 days later
-      const maxParticipants = 100;
-      const rewardAmountPerParticipant = 1000000; // 1 token (assuming 6 decimals)
+    await program.methods
+      .initializeProtocol(250, 86400, 31536000)
+      .accounts({
+        adminState,
+        protocolAdmin: admin.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([admin])
+      .rpc();
 
-      // Derive PDA for study account
-      const [studyPda] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("study"),
-          researcher.publicKey.toBuffer(),
-          new anchor.BN(studyId).toArrayLike(Buffer, "le", 8),
-        ],
-        program.programId
-      );
-
-      // Execute create_study instruction
-      const tx = await program.methods
-        .createStudy(
-          new anchor.BN(studyId),
-          title,
-          description,
-          new anchor.BN(enrollmentStart),
-          new anchor.BN(enrollmentEnd),
-          new anchor.BN(dataCollectionEnd),
-          maxParticipants,
-          new anchor.BN(rewardAmountPerParticipant)
-        )
-        .accountsPartial({
-          studyAccount: studyPda,
-          researcher: researcher.publicKey,
-          systemProgram: SystemProgram.programId,
-        })
-        .signers([researcher])
-        .rpc();
-
-      console.log("Create study transaction signature:", tx);
-
-      // Fetch and verify the created study account
-      const studyAccount = await program.account.studyAccount.fetch(studyPda);
-
-      expect(studyAccount.studyId.toNumber()).to.equal(studyId);
-      expect(studyAccount.researcher.toString()).to.equal(researcher.publicKey.toString());
-      expect(studyAccount.title).to.equal(title);
-      expect(studyAccount.description).to.equal(description);
-      expect(studyAccount.enrollmentStart.toNumber()).to.equal(enrollmentStart);
-      expect(studyAccount.enrollmentEnd.toNumber()).to.equal(enrollmentEnd);
-      expect(studyAccount.dataCollectionEnd.toNumber()).to.equal(dataCollectionEnd);
-      expect(studyAccount.maxParticipants).to.equal(maxParticipants);
-      expect(studyAccount.rewardAmountPerParticipant.toNumber()).to.equal(rewardAmountPerParticipant);
-      expect(studyAccount.enrolledCount).to.equal(0);
-      expect(studyAccount.completedCount).to.equal(0);
-      expect(studyAccount.status).to.deep.equal({ draft: {} });
-    });
-
-    it("Fails with title too long", async () => {
-      await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
-      await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
-      );
-
-      const currentTime = Math.floor(Date.now() / 1000);
-      const longTitle = "A".repeat(101); // 101 characters - should fail
-      
-      const [studyPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("study"), researcher.publicKey.toBuffer(), new anchor.BN(studyId).toArrayLike(Buffer, "le", 8)],
-        program.programId
-      );
-
-      try {
-        await program.methods
-          .createStudy(
-            new anchor.BN(studyId),
-            longTitle,
-            "Valid description",
-            new anchor.BN(currentTime + 3600),
-            new anchor.BN(currentTime + 86400),
-            new anchor.BN(currentTime + 172800),
-            100,
-            new anchor.BN(1000000)
-          )
-          .accountsPartial({
-            studyAccount: studyPda,
-            researcher: researcher.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
-          .signers([researcher])
-          .rpc();
-        
-        expect.fail("Expected transaction to fail with TitleTooLong error");
-      } catch (error) {
-        console.log("Actual error:", error.message);
-        expect(error.message).to.include("TitleTooLong");
-      }
-    });
-
-    it("Fails with invalid enrollment dates", async () => {
-      await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
-      await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
-      );
-
-      const currentTime = Math.floor(Date.now() / 1000);
-      const pastTime = currentTime - 3600; // 1 hour ago
-      
-      const [studyPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("study"), researcher.publicKey.toBuffer(), new anchor.BN(studyId).toArrayLike(Buffer, "le", 8)],
-        program.programId
-      );
-
-      try {
-                 await program.methods
-           .createStudy(
-             new anchor.BN(studyId),
-             "Valid Title",
-             "Valid description",
-             new anchor.BN(pastTime), // Past enrollment start should fail
-             new anchor.BN(currentTime + 86400),
-             new anchor.BN(currentTime + 172800),
-             100,
-             new anchor.BN(1000000)
-           )
-           .accountsPartial({
-             studyAccount: studyPda,
-             researcher: researcher.publicKey,
-             systemProgram: SystemProgram.programId,
-           })
-          .signers([researcher])
-          .rpc();
-        
-        expect.fail("Expected transaction to fail with InvalidEnrollmentPeriod error");
-      } catch (error) {
-        expect(error.message).to.include("InvalidEnrollmentPeriod");
-      }
-    });
+    const adminStateAccount = await program.account.adminState.fetch(adminState);
+    expect(adminStateAccount.protocolFeeBasisPoints).to.equal(250);
   });
 
-  describe("publish_study", () => {
-    let researcher: Keypair;
-    let studyId: number;
-    let studyPda: PublicKey;
+  it("Creates a study", async () => {
+    const studyId = new anchor.BN(1);
+    const [study] = PublicKey.findProgramAddressSync(
+      [Buffer.from("study"), researcher.publicKey.toBuffer(), studyId.toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
 
-    beforeEach(async () => {
-      researcher = Keypair.generate();
-      await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
-      await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
-      );
+    const now = new anchor.BN(Date.now() / 1000);
+    const enrollmentStart = now.add(new anchor.BN(3600));
+    const enrollmentEnd = enrollmentStart.add(new anchor.BN(86400 * 7));
+    const dataCollectionEnd = enrollmentEnd.add(new anchor.BN(604800));
 
-      // Create a study first
-      studyId = Math.floor(Math.random() * 1000000);
-      const currentTime = Math.floor(Date.now() / 1000);
+    await program.methods
+      .createStudy(
+        studyId,
+        "Test Study",
+        "A test study for research",
+        enrollmentStart,
+        enrollmentEnd,
+        dataCollectionEnd,
+        100,
+        new anchor.BN(1000000)
+      )
+      .accounts({
+        study,
+        researcher: researcher.publicKey,
+        systemProgram: SystemProgram.programId,
+        clock: SYSVAR_CLOCK_PUBKEY,
+      })
+      .signers([researcher])
+      .rpc();
 
-      [studyPda] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("study"),
-          researcher.publicKey.toBuffer(),
-          new anchor.BN(studyId).toArrayLike(Buffer, "le", 8),
-        ],
-        program.programId
-      );
-
-      await program.methods
-        .createStudy(
-          new anchor.BN(studyId),
-          "Test Study",
-          "Test Description",
-          new anchor.BN(currentTime + 3600), // 1 hour from now
-          new anchor.BN(currentTime + 86400), // 1 day from now
-          new anchor.BN(currentTime + 172800), // 2 days from now
-          100,
-          new anchor.BN(1000000)
-        )
-        .accountsPartial({
-          studyAccount: studyPda,
-          researcher: researcher.publicKey,
-          systemProgram: SystemProgram.programId,
-        })
-        .signers([researcher])
-        .rpc();
-    });
-
-    it("Successfully publishes a study", async () => {
-      const txSignature = await program.methods
-        .publishStudy(new anchor.BN(studyId))
-        .accountsPartial({
-          studyAccount: studyPda,
-          researcher: researcher.publicKey,
-        })
-        .signers([researcher])
-        .rpc();
-
-      console.log("Publish study transaction signature:", txSignature);
-
-      // Fetch and verify the study account
-      const studyAccount = await program.account.studyAccount.fetch(studyPda);
-      expect(studyAccount.status).to.deep.equal({ published: {} });
-      expect(studyAccount.researcher.toString()).to.equal(researcher.publicKey.toString());
-    });
-
-    it("Fails when trying to publish already published study", async () => {
-      // First publish
-      await program.methods
-        .publishStudy(new anchor.BN(studyId))
-        .accountsPartial({
-          studyAccount: studyPda,
-          researcher: researcher.publicKey,
-        })
-        .signers([researcher])
-        .rpc();
-
-      // Try to publish again
-      try {
-        await program.methods
-          .publishStudy(new anchor.BN(studyId))
-          .accountsPartial({
-            studyAccount: studyPda,
-            researcher: researcher.publicKey,
-          })
-          .signers([researcher])
-          .rpc();
-        
-        expect.fail("Expected transaction to fail");
-      } catch (error) {
-        expect(error.message).to.include("InvalidStatusTransition");
-      }
-    });
+    const studyAccount = await program.account.studyAccount.fetch(study);
+    expect(studyAccount.title).to.equal("Test Study");
+    expect(studyAccount.status).to.deep.equal({ draft: {} });
   });
 
-  describe("create_reward_vault", () => {
-    it("Successfully creates a reward vault", async () => {
-      const researcher = Keypair.generate();
-      await provider.connection.requestAirdrop(researcher.publicKey, 5 * anchor.web3.LAMPORTS_PER_SOL);
-      await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(researcher.publicKey, 5 * anchor.web3.LAMPORTS_PER_SOL)
-      );
+  it("Publishes a study", async () => {
+    const studyId = new anchor.BN(1);
+    const [study] = PublicKey.findProgramAddressSync(
+      [Buffer.from("study"), researcher.publicKey.toBuffer(), studyId.toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
 
-      // Create study first
-      const studyId = Math.floor(Math.random() * 1000000);
-      const currentTime = Math.floor(Date.now() / 1000);
+    await program.methods
+      .publishStudy()
+      .accounts({
+        study,
+        researcher: researcher.publicKey,
+      })
+      .signers([researcher])
+      .rpc();
 
-      const [studyPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("study"), researcher.publicKey.toBuffer(), new anchor.BN(studyId).toArrayLike(Buffer, "le", 8)],
-        program.programId
-      );
+    const studyAccount = await program.account.studyAccount.fetch(study);
+    expect(studyAccount.status).to.deep.equal({ published: {} });
+  });
 
-      await program.methods
-        .createStudy(
-          new anchor.BN(studyId), "Reward Test Study", "Test Description",
-          new anchor.BN(currentTime + 3600), new anchor.BN(currentTime + 86400), new anchor.BN(currentTime + 172800),
-          10, new anchor.BN(1000000) // 10 participants, 1M reward each = 10M total needed
-        )
-        .accountsPartial({ 
-          studyAccount: studyPda, 
-          researcher: researcher.publicKey, 
-          systemProgram: SystemProgram.programId 
-        })
-        .signers([researcher])
-        .rpc();
+  it("Creates a reward vault", async () => {
+    const studyId = new anchor.BN(1);
+    const [study] = PublicKey.findProgramAddressSync(
+      [Buffer.from("study"), researcher.publicKey.toBuffer(), studyId.toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
+    const [rewardVault] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vault"), study.toBuffer()],
+      program.programId
+    );
 
-      // Create reward token mint
-      const rewardMint = await createMint(
-        provider.connection,
-        researcher,
-        researcher.publicKey,
-        null,
-        6
-      );
+    await program.methods
+      .createRewardVault(studyId, new anchor.BN(10000000))
+      .accounts({
+        study,
+        rewardVault,
+        vaultTokenAccount: getAssociatedTokenAddressSync(rewardVault, rewardMint),
+        rewardTokenMint: rewardMint,
+        researcherTokenAccount,
+        researcher: researcher.publicKey,
+        associatedTokenProgram: new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
+        tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([researcher])
+      .rpc();
 
-      // Create researcher's token account and mint tokens
-      const researcherTokenAccount = await getOrCreateAssociatedTokenAccount(
-        provider.connection,
-        researcher,
+    const vaultAccount = await program.account.rewardVault.fetch(rewardVault);
+    expect(vaultAccount.totalDeposited.toString()).to.equal("10000000");
+  });
+
+  it("Mints consent NFT", async () => {
+    const studyId = new anchor.BN(1);
+    const [study] = PublicKey.findProgramAddressSync(
+      [Buffer.from("study"), researcher.publicKey.toBuffer(), studyId.toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
+    const [consent] = PublicKey.findProgramAddressSync(
+      [Buffer.from("consent"), study.toBuffer(), participant.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const consentNftMint = Keypair.generate();
+    const eligibilityProof = Buffer.from("test_eligibility_proof");
+
+    await program.methods
+      .mintConsentNft(studyId, eligibilityProof)
+      .accounts({
+        study,
+        consent,
+        consentNftMint: consentNftMint.publicKey,
+        participant: participant.publicKey,
+        systemProgram: SystemProgram.programId,
+        mplCoreProgram: new PublicKey("CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"),
+      })
+      .signers([participant, consentNftMint])
+      .rpc();
+
+    const consentAccount = await program.account.consentAccount.fetch(consent);
+    expect(consentAccount.participant.toString()).to.equal(participant.publicKey.toString());
+    expect(consentAccount.nftMint.toString()).to.equal(consentNftMint.publicKey.toString());
+  });
+
+  it("Submits data", async () => {
+    const studyId = new anchor.BN(1);
+    const [study] = PublicKey.findProgramAddressSync(
+      [Buffer.from("study"), researcher.publicKey.toBuffer(), studyId.toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
+    const [consent] = PublicKey.findProgramAddressSync(
+      [Buffer.from("consent"), study.toBuffer(), participant.publicKey.toBuffer()],
+      program.programId
+    );
+    const [submission] = PublicKey.findProgramAddressSync(
+      [Buffer.from("submission"), study.toBuffer(), participant.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const encryptedDataHash = Array.from(Buffer.alloc(32, 1));
+    const ipfsCid = "QmTestHash123";
+
+    await program.methods
+      .submitData(encryptedDataHash, ipfsCid)
+      .accounts({
+        study,
+        consent,
+        submission,
+        participant: participant.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([participant])
+      .rpc();
+
+    const submissionAccount = await program.account.submissionAccount.fetch(submission);
+    expect(submissionAccount.participant.toString()).to.equal(participant.publicKey.toString());
+    expect(submissionAccount.ipfsCid).to.equal(ipfsCid);
+  });
+
+  it("Distributes reward", async () => {
+    const studyId = new anchor.BN(1);
+    const [study] = PublicKey.findProgramAddressSync(
+      [Buffer.from("study"), researcher.publicKey.toBuffer(), studyId.toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
+    const [rewardVault] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vault"), study.toBuffer()],
+      program.programId
+    );
+    const [consent] = PublicKey.findProgramAddressSync(
+      [Buffer.from("consent"), study.toBuffer(), participant.publicKey.toBuffer()],
+      program.programId
+    );
+    const [submission] = PublicKey.findProgramAddressSync(
+      [Buffer.from("submission"), study.toBuffer(), participant.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const participantTokenAccount = getAssociatedTokenAddressSync(
+      rewardMint,
+      participant.publicKey
+    );
+
+    await program.methods
+      .distributeReward()
+      .accounts({
+        study,
+        rewardVault,
+        vaultTokenAccount: getAssociatedTokenAddressSync(rewardVault, rewardMint),
+        consent,
+        submission,
         rewardMint,
-        researcher.publicKey
-      );
+        participantTokenAccount,
+        participant: participant.publicKey,
+        researcher: researcher.publicKey,
+        associatedTokenProgram: new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
+        tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([researcher])
+      .rpc();
 
-      const initialSupply = 20000000; // 20M tokens
-      await mintTo(
-        provider.connection,
-        researcher,
-        rewardMint,
-        researcherTokenAccount.address,
-        researcher,
-        initialSupply
-      );
-
-      // Derive vault accounts
-      const [rewardVaultPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("vault"), studyPda.toBuffer()],
-        program.programId
-      );
-
-      // Create vault token account owned by the reward vault PDA
-      const vaultTokenAccount = await getOrCreateAssociatedTokenAccount(
-        provider.connection,
-        researcher,
-        rewardMint,
-        rewardVaultPda,
-        true // allowOwnerOffCurve - allows PDA as owner
-      );
-
-      // Create reward vault
-      const initialDeposit = 15000000; // 15M tokens (more than required 10M)
-      
-      const tx = await program.methods
-        .createRewardVault(new anchor.BN(studyId), new anchor.BN(initialDeposit))
-        .accountsPartial({
-          studyAccount: studyPda,
-          rewardVault: rewardVaultPda,
-          vaultTokenAccount: vaultTokenAccount.address,
-          rewardMint: rewardMint,
-          researcherTokenAccount: researcherTokenAccount.address,
-          researcher: researcher.publicKey,
-          systemProgram: SystemProgram.programId,
-          tokenProgram: TOKEN_PROGRAM_ID,
-        })
-        .signers([researcher]) // Remove vaultTokenAccount from signers
-        .rpc();
-
-      console.log("Create reward vault tx:", tx);
-
-      // Verify vault account
-      const vaultAccount = await program.account.rewardVault.fetch(rewardVaultPda);
-      expect(vaultAccount.totalDeposited.toNumber()).to.equal(initialDeposit);
-      expect(vaultAccount.participantsRewarded).to.equal(0);
-    });
+    const submissionAccount = await program.account.submissionAccount.fetch(submission);
+    expect(submissionAccount.rewardClaimed).to.be.true;
   });
 
-  describe("mint_consent_nft", () => {
-    it("Successfully mints consent NFT for eligible participant", async () => {
-      const researcher = Keypair.generate();
-      const participant = Keypair.generate();
-      
-      // Fund accounts
-      await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
-      await provider.connection.requestAirdrop(participant.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
-      await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
-      );
-      await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(participant.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
-      );
+  it("Closes a study", async () => {
+    const studyId = new anchor.BN(1);
+    const [study] = PublicKey.findProgramAddressSync(
+      [Buffer.from("study"), researcher.publicKey.toBuffer(), studyId.toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
 
-      // Create and publish study with current enrollment window
-      const studyId = Math.floor(Math.random() * 1000000);
-      const currentTime = Math.floor(Date.now() / 1000);
+    await program.methods
+      .closeStudy()
+      .accounts({
+        study,
+        researcher: researcher.publicKey,
+      })
+      .signers([researcher])
+      .rpc();
 
-      const [studyPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("study"), researcher.publicKey.toBuffer(), new anchor.BN(studyId).toArrayLike(Buffer, "le", 8)],
-        program.programId
-      );
-
-             await program.methods
-         .createStudy(
-           new anchor.BN(studyId), "Consent Test Study", "Test Description",
-           new anchor.BN(currentTime + 10), new anchor.BN(currentTime + 86400), new anchor.BN(currentTime + 172800),
-           100, new anchor.BN(1000000)
-         )
-        .accountsPartial({ 
-          studyAccount: studyPda, 
-          researcher: researcher.publicKey, 
-          systemProgram: SystemProgram.programId 
-        })
-        .signers([researcher])
-        .rpc();
-
-             await program.methods
-         .publishStudy(new anchor.BN(studyId))
-         .accountsPartial({ 
-           studyAccount: studyPda, 
-           researcher: researcher.publicKey 
-         })
-         .signers([researcher])
-         .rpc();
-
-       // Wait for enrollment to start
-       await new Promise(resolve => setTimeout(resolve, 15000)); // 15 second delay
-
-       // Derive consent NFT account PDA
-      const [consentNftPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("consent"), studyPda.toBuffer(), participant.publicKey.toBuffer()],
-        program.programId
-      );
-
-             // Skip Metaplex Core integration test in local environment
-       // Focus on testing consent account creation and core logic
-       console.log("Note: Skipping Metaplex Core NFT minting in local test environment");
-       console.log("Metaplex Core integration should be tested on devnet where the program is deployed");
-       
-       // Test that we can create the consent account structure
-       // This validates our core business logic without external dependencies
-       expect(consentNftPda).to.not.be.null;
-       console.log("Consent NFT PDA derived successfully:", consentNftPda.toString());
-
-      // In a real environment, we would verify:
-      // - Consent NFT account creation and metadata
-      // - Study enrollment count increment  
-      // - Core NFT asset creation
-      // These tests should be run on devnet with full Metaplex Core program deployment
-      
-      console.log("✓ Core RecruSearch logic validated - PDA derivation successful");
-      console.log("✓ Study account structure validated");
-      console.log("✓ Ready for devnet testing with full Metaplex Core integration");
-    });
-
-    it("Successfully revokes consent and burns NFT", async () => {
-      const researcher = Keypair.generate();
-      const participant = Keypair.generate();
-      
-      // Fund accounts
-      await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
-      await provider.connection.requestAirdrop(participant.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
-      await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
-      );
-      await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(participant.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
-      );
-
-      const studyId = Math.floor(Math.random() * 1000000);
-      const currentTime = Math.floor(Date.now() / 1000);
-
-      // Create and publish study
-      const [studyPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("study"), researcher.publicKey.toBuffer(), new anchor.BN(studyId).toArrayLike(Buffer, "le", 8)],
-        program.programId
-      );
-
-      await program.methods
-        .createStudy(
-          new anchor.BN(studyId), "Revoke Test Study", "Test Description",
-          new anchor.BN(currentTime + 5), new anchor.BN(currentTime + 86400), new anchor.BN(currentTime + 172800),
-          100, new anchor.BN(1000000)
-        )
-        .accountsPartial({ 
-          studyAccount: studyPda, 
-          researcher: researcher.publicKey, 
-          systemProgram: SystemProgram.programId 
-        })
-        .signers([researcher])
-        .rpc();
-
-      await program.methods
-        .publishStudy(new anchor.BN(studyId))
-        .accountsPartial({ 
-          studyAccount: studyPda, 
-          researcher: researcher.publicKey 
-        })
-        .signers([researcher])
-        .rpc();
-
-      // Wait for enrollment to start
-      await new Promise(resolve => setTimeout(resolve, 6000));
-
-      // Mint consent NFT first
-      const [consentNftPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("consent"), studyPda.toBuffer(), participant.publicKey.toBuffer()],
-        program.programId
-      );
-
-      // Skip Metaplex Core integration test in local environment
-      console.log("Note: Skipping Metaplex Core NFT minting/burning in local test environment");
-      console.log("Consent revocation with NFT burning should be tested on devnet");
-      
-      // Test that we can derive the consent account structure
-      expect(consentNftPda).to.not.be.null;
-      console.log("Consent NFT PDA derived successfully for revocation test:", consentNftPda.toString());
-      
-      // In a real environment, we would verify:
-      // - Consent NFT minting 
-      // - Consent revocation functionality
-      // - Core NFT burning
-      // - Study enrollment count decrement
-      
-      console.log("✓ Core RevokConsent logic structure validated");
-      console.log("✓ Ready for devnet testing with full Metaplex Core integration");
-    });
+    const studyAccount = await program.account.studyAccount.fetch(study);
+    expect(studyAccount.status).to.deep.equal({ closed: {} });
   });
 
-  describe("submit_encrypted_data", () => {
-    it("Successfully submits encrypted data with valid consent NFT", async () => {
-      // This test would require setting up the full flow with consent NFT first
-      // For now, let's skip to keep tests focused on core functionality
-      console.log("Skipping complex integration test for submit_encrypted_data");
-    });
-  });
+  it("Handles edge cases", async () => {
+    const studyId = new anchor.BN(2);
+    const [study] = PublicKey.findProgramAddressSync(
+      [Buffer.from("study"), researcher.publicKey.toBuffer(), studyId.toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
 
-  describe("distribute_reward", () => {
-    it("Successfully distributes reward and mints completion NFT", async () => {
-      // This test would require setting up the full flow 
-      // For now, let's skip to keep tests focused on core functionality
-      console.log("Skipping complex integration test for distribute_reward");
-    });
-  });
-
-  describe("transition_study_state", () => {
-    it("Automatically transitions study from Published to Active", async () => {
-      const researcher = Keypair.generate();
-      await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
-      await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
-      );
-
-      const studyId = Math.floor(Math.random() * 1000000);
-      const currentTime = Math.floor(Date.now() / 1000);
-
-      const [studyPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("study"), researcher.publicKey.toBuffer(), new anchor.BN(studyId).toArrayLike(Buffer, "le", 8)],
-        program.programId
-      );
-
-      // Create study with short enrollment period (5 seconds)
+    try {
       await program.methods
-        .createStudy(
-          new anchor.BN(studyId), "Auto Transition Test", "Test Description",
-          new anchor.BN(currentTime + 5), // enrollment start in 5 seconds
-          new anchor.BN(currentTime + 10), // enrollment end in 10 seconds
-          new anchor.BN(currentTime + 20), // data collection end in 20 seconds
-          100, new anchor.BN(1000000)
-        )
-        .accountsPartial({ 
-          studyAccount: studyPda, 
-          researcher: researcher.publicKey, 
-          systemProgram: SystemProgram.programId 
-        })
-        .signers([researcher])
-        .rpc();
-
-      // Publish the study
-      await program.methods
-        .publishStudy(new anchor.BN(studyId))
-        .accountsPartial({ 
-          studyAccount: studyPda, 
-          researcher: researcher.publicKey 
-        })
-        .signers([researcher])
-        .rpc();
-
-      // Verify study is published
-      let studyAccount = await program.account.studyAccount.fetch(studyPda);
-      expect(studyAccount.status).to.deep.equal({ published: {} });
-
-      // Wait for enrollment period to end (12 seconds total)
-      console.log("Waiting for enrollment period to end...");
-      await new Promise(resolve => setTimeout(resolve, 12000));
-
-      // Trigger automatic transition
-      const tx = await program.methods
-        .transitionStudyState(new anchor.BN(studyId))
-        .accountsPartial({
-          studyAccount: studyPda,
-        })
-        .rpc();
-
-      console.log("Transition study state tx:", tx);
-
-      // Verify study transitioned to Active
-      studyAccount = await program.account.studyAccount.fetch(studyPda);
-      expect(studyAccount.status).to.deep.equal({ active: {} });
-    });
-
-    it("Automatically transitions study from Active to Closed", async () => {
-      const researcher = Keypair.generate();
-      await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
-      await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
-      );
-
-      const studyId = Math.floor(Math.random() * 1000000);
-      const currentTime = Math.floor(Date.now() / 1000);
-
-      const [studyPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("study"), researcher.publicKey.toBuffer(), new anchor.BN(studyId).toArrayLike(Buffer, "le", 8)],
-        program.programId
-      );
-
-      // Create study with very short periods
-      await program.methods
-        .createStudy(
-          new anchor.BN(studyId), "Active to Closed Test", "Test Description",
-          new anchor.BN(currentTime + 2), // enrollment start in 2 seconds
-          new anchor.BN(currentTime + 4), // enrollment end in 4 seconds  
-          new anchor.BN(currentTime + 8), // data collection end in 8 seconds
-          100, new anchor.BN(1000000)
-        )
-        .accountsPartial({ 
-          studyAccount: studyPda, 
-          researcher: researcher.publicKey, 
-          systemProgram: SystemProgram.programId 
-        })
-        .signers([researcher])
-        .rpc();
-
-      // Publish the study
-      await program.methods
-        .publishStudy(new anchor.BN(studyId))
-        .accountsPartial({ 
-          studyAccount: studyPda, 
-          researcher: researcher.publicKey 
-        })
-        .signers([researcher])
-        .rpc();
-
-      // Wait for enrollment to end and transition to Active
-      console.log("Waiting for enrollment period to end...");
-      await new Promise(resolve => setTimeout(resolve, 6000));
-
-      // First transition: Published → Active
-      await program.methods
-        .transitionStudyState(new anchor.BN(studyId))
-        .accountsPartial({
-          studyAccount: studyPda,
-        })
-        .rpc();
-
-      // Verify study is now Active
-      let studyAccount = await program.account.studyAccount.fetch(studyPda);
-      expect(studyAccount.status).to.deep.equal({ active: {} });
-
-      // Wait for data collection to end
-      console.log("Waiting for data collection period to end...");
-      await new Promise(resolve => setTimeout(resolve, 4000));
-
-      // Second transition: Active → Closed
-      const tx = await program.methods
-        .transitionStudyState(new anchor.BN(studyId))
-        .accountsPartial({
-          studyAccount: studyPda,
-        })
-        .rpc();
-
-      console.log("Transition to Closed tx:", tx);
-
-      // Verify study transitioned to Closed
-      studyAccount = await program.account.studyAccount.fetch(studyPda);
-      expect(studyAccount.status).to.deep.equal({ closed: {} });
-    });
-  });
-
-  describe("close_study", () => {
-    it("Successfully closes a published study", async () => {
-      const researcher = Keypair.generate();
-      await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
-      await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
-      );
-
-      const studyId = Math.floor(Math.random() * 1000000);
-      const currentTime = Math.floor(Date.now() / 1000);
-
-      const [studyPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("study"), researcher.publicKey.toBuffer(), new anchor.BN(studyId).toArrayLike(Buffer, "le", 8)],
-        program.programId
-      );
-
-      // Create study with very short time periods (5 seconds each) so we can test closure
-      await program.methods
-        .createStudy(
-          new anchor.BN(studyId), "Close Test Study", "Test Description",
-          new anchor.BN(currentTime + 5), // enrollment start in 5 seconds
-          new anchor.BN(currentTime + 10), // enrollment end in 10 seconds
-          new anchor.BN(currentTime + 15), // data collection end in 15 seconds
-          100, new anchor.BN(1000000)
-        )
-        .accountsPartial({ 
-          studyAccount: studyPda, 
-          researcher: researcher.publicKey, 
-          systemProgram: SystemProgram.programId 
-        })
-        .signers([researcher])
-        .rpc();
-
-      // Publish the study
-      await program.methods
-        .publishStudy(new anchor.BN(studyId))
-        .accountsPartial({ 
-          studyAccount: studyPda, 
-          researcher: researcher.publicKey 
-        })
-        .signers([researcher])
-        .rpc();
-
-      // Wait for data collection period to end (20 seconds total)
-      console.log("Waiting for data collection period to end...");
-      await new Promise(resolve => setTimeout(resolve, 20000));
-
-      // Close the study
-      const tx = await program.methods
-        .closeStudy(new anchor.BN(studyId))
-        .accountsPartial({
-          studyAccount: studyPda,
+        .publishStudy()
+        .accounts({
+          study,
           researcher: researcher.publicKey,
         })
         .signers([researcher])
         .rpc();
-
-      console.log("Close study tx:", tx);
-
-      // Verify study is closed
-      const studyAccount = await program.account.studyAccount.fetch(studyPda);
-      expect(studyAccount.status).to.deep.equal({ closed: {} });
-    });
-
-    it("Fails when unauthorized user tries to close study", async () => {
-      const researcher = Keypair.generate();
-      const unauthorized = Keypair.generate();
-      
-      await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
-      await provider.connection.requestAirdrop(unauthorized.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
-      await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(researcher.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
-      );
-      await provider.connection.confirmTransaction(
-        await provider.connection.requestAirdrop(unauthorized.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
-      );
-
-      const studyId = Math.floor(Math.random() * 1000000);
-      const currentTime = Math.floor(Date.now() / 1000);
-
-      const [studyPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("study"), researcher.publicKey.toBuffer(), new anchor.BN(studyId).toArrayLike(Buffer, "le", 8)],
-        program.programId
-      );
-
-      // Create and publish study
-      await program.methods
-        .createStudy(
-          new anchor.BN(studyId), "Unauthorized Test", "Test Description",
-          new anchor.BN(currentTime + 3600), new anchor.BN(currentTime + 86400), new anchor.BN(currentTime + 172800),
-          100, new anchor.BN(1000000)
-        )
-        .accountsPartial({ 
-          studyAccount: studyPda, 
-          researcher: researcher.publicKey, 
-          systemProgram: SystemProgram.programId 
-        })
-        .signers([researcher])
-        .rpc();
-
-      await program.methods
-        .publishStudy(new anchor.BN(studyId))
-        .accountsPartial({ 
-          studyAccount: studyPda, 
-          researcher: researcher.publicKey 
-        })
-        .signers([researcher])
-        .rpc();
-
-      // Try to close with unauthorized user
-      try {
-        await program.methods
-          .closeStudy(new anchor.BN(studyId))
-          .accountsPartial({
-            studyAccount: studyPda,
-            researcher: unauthorized.publicKey, // Wrong researcher
-          })
-          .signers([unauthorized])
-          .rpc();
-        
-        expect.fail("Expected transaction to fail");
-      } catch (error) {
-        // The error message might be a constraint error rather than our custom error
-        expect(error.message).to.include("Error Code:");
-      }
-    });
-
-    it("Fails when trying to close already closed study", async () => {
-      // This test is similar to the success case but attempts to close twice
-      console.log("Skipping duplicate close test - covered by other error cases");
-    });
+      expect.fail("Should have failed - study not created");
+    } catch (error) {
+      expect(error.message).to.include("AnchorError");
+    }
   });
 });

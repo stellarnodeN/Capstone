@@ -15,6 +15,7 @@ pub struct SubmissionAccount {
     
     pub submission_timestamp: i64,        // When the data was submitted (Unix timestamp)
     pub reward_claimed: bool,             // Whether the participant has received their reward yet
+    pub is_verified: bool,                // Whether the submission has been verified by the researcher
     pub completion_nft: Option<Pubkey>,   // Reference to completion certificate NFT (if reward claimed)
     pub bump: u8,                         // PDA bump seed for account creation
 } 

@@ -2,86 +2,71 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum RecruSearchError {
-    #[msg("Study title is too long (max 100 characters)")]
-    TitleTooLong,
-    #[msg("Study description is too long (max 500 characters)")]
-    DescriptionTooLong,
-    #[msg("Enrollment start time must be in the future")]
-    InvalidEnrollmentStart,
-    #[msg("Enrollment end time must be after start time")]
-    InvalidEnrollmentEnd,
-    #[msg("Invalid enrollment period configuration")]
-    InvalidEnrollmentPeriod,
-    #[msg("Data collection end time must be after enrollment end time")]
-    InvalidDataCollectionEnd,
-    #[msg("Invalid data collection period configuration")]
-    InvalidDataCollectionPeriod,
-    #[msg("Max participants must be greater than 0")]
-    InvalidMaxParticipants,
-    #[msg("Insufficient vault balance for reward distribution")]
-    InsufficientVaultBalance,
-    #[msg("Insufficient deposit to cover expected rewards")]
-    InsufficientRewardDeposit,
-    #[msg("Math operation resulted in overflow")]
-    MathOverflow,
-    
-    // Publish study errors
-    #[msg("Invalid status transition. Study must be in Draft status to publish")]
-    InvalidStatusTransition,
-    
-    #[msg("Unauthorized researcher. Only the study creator can perform this action")]
-    UnauthorizedResearcher,
-    
-    #[msg("Unauthorized access. Only authorized users can perform this action")]
-    UnauthorizedAccess,
-    
-    #[msg("Invalid reward amount. Must be greater than 0")]
-    InvalidRewardAmount,
-    
-    // Token and vault errors
-    #[msg("Invalid token mint for this vault")]
-    InvalidTokenMint,
-    
-    #[msg("Invalid token account configuration")]
-    InvalidTokenAccount,
-    
-    // Consent NFT errors
-    #[msg("Enrollment is closed for this study")]
-    EnrollmentClosed,
-    
-    #[msg("Maximum number of participants reached")]
-    MaxParticipantsReached,
-    
-    #[msg("Missing eligibility proof required for this study")]
-    MissingEligibilityProof,
-    
-    // Data submission errors
-    #[msg("Data collection is closed for this study")]
-    DataCollectionClosed,
-    
-    #[msg("Data collection is still active - cannot close study yet")]
-    DataCollectionStillActive,
-    
-    #[msg("Invalid consent NFT or consent has been revoked")]
-    InvalidConsentNFT,
-    
-    #[msg("Invalid or revoked consent")]
-    InvalidOrRevokedConsent,
-    
-    #[msg("Consent has already been revoked")]
-    ConsentAlreadyRevoked,
-    
-    #[msg("Invalid data format or IPFS CID")]
-    InvalidDataFormat,
-    
-    #[msg("Invalid data hash - cannot be empty")]
-    InvalidDataHash,
-    
-    // Reward distribution errors
-    #[msg("Reward has already been claimed for this submission")]
-    RewardAlreadyClaimed,
-    
-    // Study closure errors
-    #[msg("Study is already closed or archived")]
-    StudyAlreadyClosed,
+    // Study Validation (6000-6099)
+    #[msg("Study title is too long")]
+    TitleTooLong = 6000,
+    #[msg("Study description is too long")]
+    DescriptionTooLong = 6001,
+    #[msg("Invalid enrollment start time")]
+    InvalidEnrollmentStart = 6002,
+    #[msg("Invalid enrollment end time")]
+    InvalidEnrollmentEnd = 6003,
+    #[msg("Invalid enrollment period")]
+    InvalidEnrollmentPeriod = 6004,
+    #[msg("Invalid data collection end time")]
+    InvalidDataCollectionEnd = 6005,
+    #[msg("Invalid data collection period")]
+    InvalidDataCollectionPeriod = 6006,
+    #[msg("Invalid maximum participants")]
+    InvalidMaxParticipants = 6007,
+    #[msg("Invalid parameter value")]
+    InvalidParameterValue = 6008,
+
+    // Access Control (6100-6199)
+    #[msg("Unauthorized researcher")]
+    UnauthorizedResearcher = 6100,
+    #[msg("Unauthorized participant")]
+    UnauthorizedParticipant = 6101,
+    #[msg("Unauthorized access")]
+    UnauthorizedAccess = 6102,
+
+    // State/Status Issues (6200-6299)
+    #[msg("Invalid study state")]
+    InvalidStudyState = 6200,
+    #[msg("Invalid status transition")]
+    InvalidStatusTransition = 6201,
+    #[msg("Study not published")]
+    StudyNotPublished = 6202,
+    #[msg("Study is full")]
+    StudyFull = 6203,
+
+    // Data Validation (6300-6399)
+    #[msg("Invalid data format")]
+    InvalidDataFormat = 6300,
+    #[msg("Invalid IPFS CID")]
+    InvalidIPFSCID = 6301,
+    #[msg("Invalid eligibility proof")]
+    InvalidEligibilityProof = 6302,
+    #[msg("ZK proof validation failed")]
+    ZKProofValidationFailed = 6303,
+
+    // Participant Issues (6400-6499)
+    #[msg("Consent revoked")]
+    ConsentRevoked = 6400,
+    #[msg("Already submitted")]
+    AlreadySubmitted = 6401,
+
+    // Financial/Token Issues (6500-6599)
+    #[msg("Insufficient funds")]
+    InsufficientFunds = 6500,
+    #[msg("Reward already claimed")]
+    RewardAlreadyClaimed = 6501,
+    #[msg("Excessive protocol fee")]
+    ExcessiveProtocolFee = 6502,
+
+    // Processing Issues (6600-6699)
+    #[msg("Anonymization failed")]
+    AnonymizationFailed = 6600,
+    #[msg("Arithmetic error")]
+    ArithmeticError = 6601,
 }
