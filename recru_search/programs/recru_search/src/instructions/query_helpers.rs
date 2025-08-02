@@ -1,17 +1,13 @@
 use anchor_lang::prelude::*;
-use crate::state::{
-    study::{StudyAccount, StudyStatus},
-    ConsentNFTAccount,
-    admin::AdminState,
-};
-use crate::constants::*;
+use crate::state::{StudyAccount, StudyStatus, ConsentAccount, AdminAccount};
+
 
 /// Get study statistics and metadata
 #[derive(Accounts)]
 #[instruction(study_id: u64)]
 pub struct GetStudyInfo<'info> {
     #[account(
-        seeds = [STUDY_SEED.as_bytes(), study_account.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", study_account.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
         bump = study_account.bump
     )]
     pub study_account: Account<'info, StudyAccount>,
@@ -22,16 +18,16 @@ pub struct GetStudyInfo<'info> {
 #[instruction(study_id: u64)]
 pub struct GetConsentStatus<'info> {
     #[account(
-        seeds = [STUDY_SEED.as_bytes(), study_account.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", study_account.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
         bump = study_account.bump
     )]
     pub study_account: Account<'info, StudyAccount>,
 
     #[account(
-        seeds = [CONSENT_SEED.as_bytes(), study_account.key().as_ref(), participant.key().as_ref()],
+        seeds = [b"consent", study_account.key().as_ref(), participant.key().as_ref()],
         bump = consent_nft_account.bump
     )]
-    pub consent_nft_account: Account<'info, ConsentNFTAccount>,
+    pub consent_nft_account: Account<'info, ConsentAccount>,
 
     /// CHECK: This is just for the participant key reference
     pub participant: UncheckedAccount<'info>,
@@ -41,10 +37,10 @@ pub struct GetConsentStatus<'info> {
 #[derive(Accounts)]
 pub struct GetProtocolStats<'info> {
     #[account(
-        seeds = [ADMIN_SEED.as_bytes()],
+        seeds = [b"admin"],
         bump = admin_state.bump
     )]
-    pub admin_state: Account<'info, AdminState>,
+    pub admin_state: Account<'info, AdminAccount>,
 }
 
 impl<'info> GetStudyInfo<'info> {
@@ -134,8 +130,8 @@ impl<'info> GetConsentStatus<'info> {
         Ok(ConsentStatus {
             has_consented: true, // If account exists, consent was given
             is_revoked: consent.is_revoked,
-            consent_timestamp: consent.consent_timestamp,
-            study_id: consent.study_id,
+            consent_timestamp: consent.timestamp,
+            study_id: self.study_account.study_id,
             participant: consent.participant,
         })
     }
@@ -148,10 +144,10 @@ impl<'info> GetProtocolStats<'info> {
         
         Ok(ProtocolStats {
             protocol_admin: admin_state.protocol_admin,
-            protocol_fee_bps: admin_state.protocol_fee_basis_points,
-            min_study_duration: admin_state.min_study_duration,
-            max_study_duration: admin_state.max_study_duration,
-            is_paused: admin_state.paused,
+            protocol_fee_bps: admin_state.protocol_fee_bps,
+            min_study_duration: admin_state.min_study_duration as u32,
+            max_study_duration: admin_state.max_study_duration as u32,
+            is_paused: false, // AdminAccount doesn't have a paused field
         })
     }
 }

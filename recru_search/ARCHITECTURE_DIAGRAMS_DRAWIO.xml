@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2024-01-01T00:00:00.000Z" agent="5.0" etag="xxx" version="22.1.16" type="device">
+  <diagram name="RecruSearch Architecture" id="recru-search-architecture">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- 1. Protocol Initialization -->
+        <mxCell id="init-researcher" value="researcher: Signer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="init-admin-pda" value="AdminState PDA" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="200" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="init-data" value="protocol_admin, fees, durations, stats" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="360" y="40" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="init-system" value="System Program" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#424242;" vertex="1" parent="1">
+          <mxGeometry x="40" y="140" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="init-clock" value="Clock Sysvar" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#424242;" vertex="1" parent="1">
+          <mxGeometry x="200" y="140" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="init-arrow1" value="initialize_protocol" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="init-researcher" target="init-admin-pda">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="init-arrow2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="init-admin-pda" target="init-data">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="init-arrow3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="init-admin-pda" target="init-system">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="init-arrow4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="init-admin-pda" target="init-clock">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Legend for Protocol Initialization -->
+        <mxCell id="init-legend-title" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="600" y="40" width="60" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="init-legend1" value="Signer Account" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;" vertex="1" parent="1">
+          <mxGeometry x="600" y="80" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="init-legend2" value="PDA Account" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="600" y="120" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="init-legend3" value="Data Structure" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="600" y="160" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="init-legend4" value="External Program" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#424242;" vertex="1" parent="1">
+          <mxGeometry x="600" y="200" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- 2. Study Management -->
+        <mxCell id="study-researcher" value="researcher: Signer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-pda" value="study: Account StudyAccount" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="200" y="280" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-fields" value="study_id, researcher, title, description, enrollment_start, enrollment_end, data_collection_end, max_participants, reward_amount_per_participant, status" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="380" y="280" width="300" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-publish" value="researcher: Signer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-publish-pda" value="study: Account StudyAccount" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="200" y="360" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-published" value="status: StudyStatus::Published" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="380" y="360" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-close" value="researcher: Signer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;" vertex="1" parent="1">
+          <mxGeometry x="40" y="440" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-close-pda" value="study: Account StudyAccount" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="200" y="440" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-closed" value="status: StudyStatus::Closed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="380" y="440" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-transition" value="anyone" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;" vertex="1" parent="1">
+          <mxGeometry x="40" y="520" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-transition-pda" value="study: Account StudyAccount" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="200" y="520" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-auto" value="Auto-transition based on time" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="380" y="520" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Study Status Flow -->
+        <mxCell id="study-draft" value="Draft" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="280" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-published-status" value="Published" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="340" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-active" value="Active" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="400" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-closed-status" value="Closed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="460" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-archived" value="Archived" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="520" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Study Status Arrows -->
+        <mxCell id="study-status-arrow1" value="publish_study" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-draft" target="study-published-status">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-status-arrow2" value="time-based" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-published-status" target="study-active">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-status-arrow3" value="close_study" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-active" target="study-closed-status">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-status-arrow4" value="time-based" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-closed-status" target="study-archived">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Study Dependencies -->
+        <mxCell id="study-system" value="system_program: Program System" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#424242;" vertex="1" parent="1">
+          <mxGeometry x="40" y="600" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-clock" value="clock: Sysvar Clock" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#424242;" vertex="1" parent="1">
+          <mxGeometry x="280" y="600" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Study Arrows -->
+        <mxCell id="study-arrow1" value="create_study" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-researcher" target="study-pda">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-arrow2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-pda" target="study-fields">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-arrow3" value="publish_study" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-publish" target="study-publish-pda">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-arrow4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-publish-pda" target="study-published">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-arrow5" value="close_study" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-close" target="study-close-pda">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-arrow6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-close-pda" target="study-closed">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-arrow7" value="transition_study_state" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-transition" target="study-transition-pda">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-arrow8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-transition-pda" target="study-auto">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Study Dependencies Arrows -->
+        <mxCell id="study-dep1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-pda" target="study-system">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-dep2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-pda" target="study-clock">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-dep3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-publish-pda" target="study-clock">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-dep4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-close-pda" target="study-clock">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-dep5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-transition-pda" target="study-clock">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Study Legend -->
+        <mxCell id="study-legend-title" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="720" y="280" width="60" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-legend1" value="Signer Account" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;" vertex="1" parent="1">
+          <mxGeometry x="720" y="320" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-legend2" value="PDA Account" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="720" y="360" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-legend3" value="StudyAccount Fields" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="720" y="400" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-legend4" value="StudyStatus Enum" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="720" y="440" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="study-legend5" value="External Program" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#424242;" vertex="1" parent="1">
+          <mxGeometry x="720" y="480" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- 3. Consent Management -->
+        <mxCell id="consent-participant1" value="participant: Signer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;" vertex="1" parent="1">
+          <mxGeometry x="40" y="720" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-pda" value="consent: Account ConsentAccount" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="200" y="720" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-fields" value="participant, study, consent_nft_mint, consent_nft_token_account, consent_granted_at, consent_revoked_at" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="380" y="720" width="300" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-participant2" value="participant: Signer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;" vertex="1" parent="1">
+          <mxGeometry x="40" y="800" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-revoke" value="Burn NFT &amp; Update" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c2185b;" vertex="1" parent="1">
+          <mxGeometry x="200" y="800" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Consent Dependencies -->
+        <mxCell id="consent-mpl" value="MPL Core Program" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#424242;" vertex="1" parent="1">
+          <mxGeometry x="40" y="880" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-token" value="Token Program" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#424242;" vertex="1" parent="1">
+          <mxGeometry x="200" y="880" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-system" value="System Program" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#424242;" vertex="1" parent="1">
+          <mxGeometry x="360" y="880" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-clock" value="Clock Sysvar" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#424242;" vertex="1" parent="1">
+          <mxGeometry x="520" y="880" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Consent Arrows -->
+        <mxCell id="consent-arrow1" value="mint_consent_nft" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="consent-participant1" target="consent-pda">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-arrow2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="consent-pda" target="consent-fields">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-arrow3" value="revoke_consent" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="consent-participant2" target="consent-revoke">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Consent Dependencies Arrows -->
+        <mxCell id="consent-dep1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="consent-pda" target="consent-mpl">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-dep2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="consent-pda" target="consent-token">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-dep3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="consent-pda" target="consent-system">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-dep4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="consent-pda" target="consent-clock">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-dep5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="consent-revoke" target="consent-mpl">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-dep6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="consent-revoke" target="consent-token">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Consent Legend -->
+        <mxCell id="consent-legend-title" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="720" y="720" width="60" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-legend1" value="Signer Account" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;" vertex="1" parent="1">
+          <mxGeometry x="720" y="760" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-legend2" value="PDA Account" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="720" y="800" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-legend3" value="Data Structure" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="720" y="840" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-legend4" value="NFT Operation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c2185b;" vertex="1" parent="1">
+          <mxGeometry x="720" y="880" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="consent-legend5" value="External Program" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#424242;" vertex="1" parent="1">
+          <mxGeometry x="720" y="920" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile> 

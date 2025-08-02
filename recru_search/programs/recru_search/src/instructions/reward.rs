@@ -4,20 +4,14 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface},
     token::{transfer_checked, TransferChecked},
 };
-use crate::state::{
-    study::StudyAccount,
-    submission::SubmissionAccount,
-    nft::ConsentAccount,
-    rewards::RewardVault,
-};
-use crate::error::RecruSearchError;
-use crate::constants::*;
+use crate::state::{StudyAccount, StudyStatus, SubmissionAccount, ConsentAccount, RewardVault, RecruSearchError};
+
 
 #[derive(Accounts)]
 pub struct DistributeReward<'info> {
     #[account(
         mut,
-        seeds = [STUDY_SEED.as_bytes(), study.researcher.as_ref(), study.study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", study.researcher.as_ref(), study.study_id.to_le_bytes().as_ref()],
         bump = study.bump
     )]
     pub study: Account<'info, StudyAccount>,
@@ -26,21 +20,24 @@ pub struct DistributeReward<'info> {
         mut,
         seeds = [b"vault", study.key().as_ref()],
         bump = reward_vault.bump,
-        constraint = reward_vault.study_account == study.key() @ RecruSearchError::InvalidParameterValue
+        constraint = reward_vault.study == study.key() @ RecruSearchError::InvalidParameterValue
     )]
     pub reward_vault: Account<'info, RewardVault>,
 
     #[account(
         mut,
-        associated_token::mint = reward_mint,
-        associated_token::authority = reward_vault,
-        constraint = vault_token_account.key() == reward_vault.vault_token_account @ RecruSearchError::InvalidParameterValue
+        token::mint = reward_mint,
+        token::authority = reward_vault,
+        token::token_program = token_program,
+        seeds = [b"vault_token", reward_vault.key().as_ref()],
+        bump,
+        constraint = vault_token_account.key() == reward_vault.key() @ RecruSearchError::InvalidParameterValue
     )]
     pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         seeds = [
-            CONSENT_SEED.as_bytes(),
+            b"consent",
             study.key().as_ref(),
             participant.key().as_ref()
         ],
@@ -52,12 +49,12 @@ pub struct DistributeReward<'info> {
     #[account(
         mut,
         seeds = [
-            SUBMISSION_SEED.as_bytes(),
+            b"submission",
             study.key().as_ref(),
             participant.key().as_ref()
         ],
         bump = submission.bump,
-        constraint = !submission.reward_claimed @ RecruSearchError::RewardAlreadyClaimed
+        constraint = !submission.reward_distributed @ RecruSearchError::RewardAlreadyClaimed
     )]
     pub submission: Account<'info, SubmissionAccount>,
 
@@ -91,7 +88,7 @@ pub struct DistributeReward<'info> {
 #[instruction(study_id: u64)]
 pub struct CreateRewardVault<'info> {
     #[account(
-        seeds = [STUDY_SEED.as_bytes(), researcher.key().as_ref(), study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", researcher.key().as_ref(), study_id.to_le_bytes().as_ref()],
         bump = study.bump
     )]
     pub study: Account<'info, StudyAccount>,
@@ -108,17 +105,22 @@ pub struct CreateRewardVault<'info> {
     #[account(
         init,
         payer = researcher,
-        associated_token::mint = reward_token_mint,
-        associated_token::authority = reward_vault
+        token::mint = reward_token_mint,
+        token::authority = reward_vault,
+        token::token_program = token_program,
+        seeds = [b"vault_token", reward_vault.key().as_ref()],
+        bump
     )]
     pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
 
     pub reward_token_mint: InterfaceAccount<'info, Mint>,
 
     #[account(
-        mut,
+        init_if_needed,
+        payer = researcher,
         associated_token::mint = reward_token_mint,
-        associated_token::authority = researcher
+        associated_token::authority = researcher,
+        associated_token::token_program = token_program,
     )]
     pub researcher_token_account: InterfaceAccount<'info, TokenAccount>,
 
@@ -139,7 +141,6 @@ impl<'info> CreateRewardVault<'info> {
     ) -> Result<()> {
         let study = &self.study;
         let vault = &mut self.reward_vault;
-        let clock = Clock::get()?;
 
         // Validate initial deposit
         let total_reward_needed = study.reward_amount_per_participant * study.max_participants as u64;
@@ -155,12 +156,11 @@ impl<'info> CreateRewardVault<'info> {
         );
 
         // Initialize vault
-        vault.study_account = study.key();
-        vault.vault_token_account = self.vault_token_account.key();
-        vault.reward_mint = self.reward_token_mint.key();
+        vault.study = study.key();
+        vault.reward_token_mint = self.reward_token_mint.key();
         vault.total_deposited = initial_deposit;
-        vault.participants_rewarded = 0;
-        vault.created_at = clock.unix_timestamp;
+        vault.total_distributed = 0;
+        vault.vault_authority = vault.key();
         vault.bump = bumps.reward_vault;
 
         // Transfer tokens from researcher to vault
@@ -205,8 +205,8 @@ impl<'info> DistributeReward<'info> {
         
         // Check if study allows reward claims
         require!(
-            study.status == crate::state::study::StudyStatus::Active || 
-            study.status == crate::state::study::StudyStatus::Closed,
+            study.status == StudyStatus::Active || 
+            study.status == StudyStatus::Closed,
             RecruSearchError::InvalidStudyState
         );
 
@@ -249,16 +249,16 @@ impl<'info> DistributeReward<'info> {
         )?;
 
         // Update vault state
-        vault.participants_rewarded = vault.participants_rewarded.saturating_add(1);
+        vault.total_distributed = vault.total_distributed.saturating_add(reward_amount);
 
-        // Mark reward as claimed
-        submission.reward_claimed = true;
+        // Mark reward as distributed
+        submission.reward_distributed = true;
 
         msg!("Reward distributed successfully from vault");
         msg!("Amount: {} tokens", reward_amount);
         msg!("Participant: {}", self.participant.key());
         msg!("Study: {}", study.study_id);
-        msg!("Vault participants rewarded: {}", vault.participants_rewarded);
+        msg!("Vault total distributed: {}", vault.total_distributed);
 
         Ok(())
     }

@@ -7,6 +7,7 @@ skip-lint = false
 
 [programs.localnet]
 recru_search = "6QUDidj9eAByDn5kqSrge47qsHWxv2b6yTxZuqt7sDVU"
+mpl_core = "CoREENxT6xw1fK2q8u9jJqqi7ryS6QZGFDG2UB3Yfu9M"
 
 [registry]
 url = "https://api.apr.dev"

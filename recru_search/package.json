@@ -2,10 +2,15 @@
   "license": "ISC",
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "test:ipfs": "ts-node app/utils/test-ipfs.ts",
+    "test:ipfs:dev": "NODE_ENV=development ts-node app/utils/test-ipfs.ts",
+    "test:ipfs:staging": "NODE_ENV=staging ts-node app/utils/test-ipfs.ts",
+    "test:ipfs:prod": "NODE_ENV=production ts-node app/utils/test-ipfs.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",
+    "@metaplex-foundation/mpl-core": "^1.6.0",
     "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "^1.98.2",
     "@stablelib/base64": "^1.0.1",

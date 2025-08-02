@@ -1,9 +1,6 @@
 use anchor_lang::prelude::*;
-use crate::state::{
-    study::{StudyAccount, StudyStatus},
-};
-use crate::error::RecruSearchError;
-use crate::constants::*;
+use crate::state::{StudyAccount, StudyStatus, RecruSearchError};
+use crate::state::constants::{MAX_TITLE_LENGTH, MAX_DESCRIPTION_LENGTH, MAX_PARTICIPANTS_PER_STUDY, MIN_ENROLLMENT_WINDOW, MIN_STUDY_DURATION, MAX_STUDY_DURATION};
 
 /// Create a new research study
 #[derive(Accounts)]
@@ -15,13 +12,13 @@ use crate::constants::*;
     enrollment_end: i64,
     data_collection_end: i64,
     max_participants: u32
-)]
+)]  
 pub struct CreateStudy<'info> {
     #[account(
         init,
         payer = researcher,
         space = 8 + StudyAccount::INIT_SPACE,
-        seeds = [STUDY_SEED.as_bytes(), researcher.key().as_ref(), study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", researcher.key().as_ref(), study_id.to_le_bytes().as_ref()],
         bump,
         // Move validation to constraints for efficiency
         constraint = title.len() <= MAX_TITLE_LENGTH @ RecruSearchError::TitleTooLong,
@@ -44,7 +41,7 @@ pub struct CreateStudy<'info> {
 pub struct PublishStudy<'info> {
     #[account(
         mut,
-        seeds = [STUDY_SEED.as_bytes(), researcher.key().as_ref(), study.study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", researcher.key().as_ref(), study.study_id.to_le_bytes().as_ref()],
         bump = study.bump,
         constraint = study.researcher == researcher.key() @ RecruSearchError::UnauthorizedResearcher,
         constraint = study.status == StudyStatus::Draft @ RecruSearchError::InvalidStudyState
@@ -60,7 +57,7 @@ pub struct PublishStudy<'info> {
 pub struct CloseStudy<'info> {
     #[account(
         mut,
-        seeds = [STUDY_SEED.as_bytes(), researcher.key().as_ref(), study.study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", researcher.key().as_ref(), study.study_id.to_le_bytes().as_ref()],
         bump = study.bump,
         constraint = study.researcher == researcher.key() @ RecruSearchError::UnauthorizedResearcher,
         constraint = study.status != StudyStatus::Closed @ RecruSearchError::InvalidStudyState
@@ -76,7 +73,7 @@ pub struct CloseStudy<'info> {
 pub struct TransitionStudyState<'info> {
     #[account(
         mut,
-        seeds = [STUDY_SEED.as_bytes(), study.researcher.as_ref(), study.study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", study.researcher.as_ref(), study.study_id.to_le_bytes().as_ref()],
         bump = study.bump
     )]
     pub study: Account<'info, StudyAccount>,
@@ -128,8 +125,12 @@ impl<'info> CreateStudy<'info> {
         study.enrolled_count = 0;
         study.completed_count = 0;
         study.status = StudyStatus::Draft;
-        study.bump = bumps.study;
+        study.created_at = clock.unix_timestamp;
         study.requires_zk_proof = false;
+        study.has_eligibility_criteria = false;
+        study.eligibility_criteria = Vec::new();
+        study.bump = bumps.study;
+        study.total_rewards_distributed = 0;
 
         msg!("Study created with ID: {}", study_id);
         msg!("Title: {}", title);
@@ -149,6 +150,8 @@ impl<'info> PublishStudy<'info> {
         // Update study status and timestamp
         study.status = StudyStatus::Published;
         
+        msg!("Study published: {} at timestamp: {}", study.study_id, clock.unix_timestamp);
+        
         msg!("Study published: {}", study.study_id);
         msg!("Now accepting participants");
         
@@ -163,6 +166,8 @@ impl<'info> CloseStudy<'info> {
         
         // Close the study
         study.status = StudyStatus::Closed;
+        
+        msg!("Study closed: {} at timestamp: {}", study.study_id, clock.unix_timestamp);
         
         msg!("Study closed: {}", study.study_id);
         msg!("No longer accepting new participants or data submissions");

@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2024-01-01T00:00:00.000Z" agent="5.0" etag="xxx" version="22.1.16" type="device">
+  <diagram name="04. Data Submission - Flowchart" id="data-submission-flowchart">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Title -->
+        <mxCell id="title" value="04. Data Submission - Flowchart (submission.rs)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="500" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Start -->
+        <mxCell id="start" value="START" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;" vertex="1" parent="1">
+          <mxGeometry x="400" y="80" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Participant Action -->
+        <mxCell id="participant-action" value="Participant Action" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="380" y="160" width="120" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Submit Data -->
+        <mxCell id="submit-data" value="submit_data()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="200" y="280" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Mint Completion NFT -->
+        <mxCell id="mint-completion" value="mint_completion_nft()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="600" y="280" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Study State Check -->
+        <mxCell id="study-state-check" value="Study State Check" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="180" y="380" width="160" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Consent Check -->
+        <mxCell id="consent-check" value="Consent Check" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="380" y="380" width="160" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Collection Period -->
+        <mxCell id="data-period-check" value="Data Collection Period" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="580" y="380" width="160" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Reward Claimed Check -->
+        <mxCell id="reward-check" value="Reward Claimed?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="780" y="380" width="160" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Completion NFT Check -->
+        <mxCell id="nft-check" value="Completion NFT Exists?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="980" y="380" width="160" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Submission -->
+        <mxCell id="data-submission" value="Data Submission&#xa;• encrypted_data_hash&#xa;• ipfs_cid&#xa;• submission_timestamp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e8;strokeColor=#388e3c;" vertex="1" parent="1">
+          <mxGeometry x="80" y="500" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- NFT Creation -->
+        <mxCell id="nft-creation" value="Create Completion NFT&#xa;(MPL Core CreateV1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c2185b;" vertex="1" parent="1">
+          <mxGeometry x="600" y="500" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Error States -->
+        <mxCell id="error-study-state" value="ERROR:&#xa;Invalid Study State" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="400" y="500" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="error-consent" value="ERROR:&#xa;Consent Revoked" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="400" y="580" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="error-period" value="ERROR:&#xa;Data Collection Ended" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="400" y="660" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="error-reward" value="ERROR:&#xa;Reward Not Claimed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="800" y="500" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="error-nft" value="ERROR:&#xa;NFT Already Exists" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="800" y="580" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Success States -->
+        <mxCell id="success-submit" value="SUCCESS" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e8f5e8;strokeColor=#388e3c;" vertex="1" parent="1">
+          <mxGeometry x="80" y="620" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="success-nft" value="SUCCESS" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e8f5e8;strokeColor=#388e3c;" vertex="1" parent="1">
+          <mxGeometry x="600" y="620" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Flowchart Arrows -->
+        <mxCell id="arrow1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="start" target="participant-action">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow2" value="Submit Data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="participant-action" target="submit-data">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow3" value="Mint NFT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="participant-action" target="mint-completion">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="submit-data" target="study-state-check">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="mint-completion" target="reward-check">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow6" value="Valid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-state-check" target="consent-check">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow7" value="Invalid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="study-state-check" target="error-study-state">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow8" value="Valid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="consent-check" target="data-period-check">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow9" value="Invalid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="consent-check" target="error-consent">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow10" value="Valid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="data-period-check" target="data-submission">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow11" value="Invalid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="data-period-check" target="error-period">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow12" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="reward-check" target="nft-check">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow13" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="reward-check" target="error-reward">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow14" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="nft-check" target="nft-creation">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow15" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="nft-check" target="error-nft">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="data-submission" target="success-submit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="nft-creation" target="success-nft">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Account Information -->
+        <mxCell id="accounts-title" value="Accounts Used:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="120" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="accounts-submit" value="SubmitData:&#xa;• study: Account StudyAccount (PDA)&#xa;• consent: Account ConsentAccount (PDA)&#xa;• submission: Account SubmissionAccount (PDA)&#xa;• participant: Signer&#xa;• system_program: Program System" style="text;html=1;strokeColor=none;fillColor=#f0f8ff;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="280" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="accounts-mint" value="MintCompletionNFT:&#xa;• study: Account StudyAccount (PDA)&#xa;• submission: Account SubmissionAccount (PDA)&#xa;• completion_nft_mint: Signer (new keypair)&#xa;• participant: Signer&#xa;• system_program: Program System&#xa;• mpl_core_program: UncheckedAccount" style="text;html=1;strokeColor=none;fillColor=#f0f8ff;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="280" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- Validation Details -->
+        <mxCell id="validation-details" value="Submit Data Validation:&#xa;• Study Status: Published or Active&#xa;• Consent: Not revoked&#xa;• Participant: Authorized&#xa;• IPFS CID: Length 1-100&#xa;• Data Collection: Not ended" style="text;html=1;strokeColor=none;fillColor=#fff8e1;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="800" y="120" width="280" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- NFT Details -->
+        <mxCell id="nft-details" value="Mint Completion NFT Validation:&#xa;• Study Status: Active or Closed&#xa;• Submission: Reward already claimed&#xa;• Completion NFT: Not already minted&#xa;• Creates NFT with MPL Core CreateV1" style="text;html=1;strokeColor=none;fillColor=#fff8e1;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="800" y="240" width="280" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Legend -->
+        <mxCell id="legend-title" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="60" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend1" value="Start/End" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;" vertex="1" parent="1">
+          <mxGeometry x="40" y="420" width="80" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend2" value="Decision Point" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="40" y="460" width="80" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend3" value="Function" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="80" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend4" value="Data Process" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e8;strokeColor=#388e3c;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="80" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend5" value="NFT Operation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c2185b;" vertex="1" parent="1">
+          <mxGeometry x="40" y="580" width="80" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend6" value="Error State" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="40" y="620" width="80" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend7" value="Success State" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e8f5e8;strokeColor=#388e3c;" vertex="1" parent="1">
+          <mxGeometry x="40" y="660" width="80" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend8" value="Account Info" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#1976d2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="700" width="80" height="30" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile> 

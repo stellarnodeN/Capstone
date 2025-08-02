@@ -2,13 +2,11 @@
 #![allow(deprecated)]
 use anchor_lang::prelude::*;
 
-pub mod constants;
-pub mod error;
 pub mod instructions;
 pub mod state;
 
-pub use constants::*;
 pub use instructions::*;
+pub use state::*;
 
 declare_id!("6QUDidj9eAByDn5kqSrge47qsHWxv2b6yTxZuqt7sDVU");
 
@@ -37,18 +35,17 @@ pub mod recru_search {
     }
 
     pub fn set_eligibility_criteria(ctx: Context<SetEligibilityCriteria>, study_id: u64, criteria: Vec<u8>) -> Result<()> {
-        let eligibility_criteria: eligibility::EligibilityCriteria = eligibility::EligibilityCriteria::try_from_slice(&criteria).map_err(|_| error::RecruSearchError::InvalidParameterValue)?;
-        ctx.accounts.set_eligibility_criteria(study_id, eligibility_criteria)
+        ctx.accounts.set_eligibility_criteria(study_id, criteria)
     }
 
     pub fn verify_eligibility(ctx: Context<VerifyEligibility>, study_id: u64, participant_info: Vec<u8>) -> Result<bool> {
-        let info: eligibility::ParticipantInfo = eligibility::ParticipantInfo::try_from_slice(&participant_info).map_err(|_| error::RecruSearchError::InvalidParameterValue)?;
+        let info: eligibility::ParticipantInfo = eligibility::ParticipantInfo::try_from_slice(&participant_info).map_err(|_| RecruSearchError::InvalidParameterValue)?;
         ctx.accounts.verify_eligibility(study_id, info)
     }
 
     pub fn verify_eligibility_with_zk(ctx: Context<VerifyEligibilityWithZK>, study_id: u64, participant_info: Vec<u8>, zk_proof: Vec<u8>) -> Result<bool> {
-        let info: eligibility::ParticipantInfo = eligibility::ParticipantInfo::try_from_slice(&participant_info).map_err(|_| error::RecruSearchError::InvalidParameterValue)?;
-        let proof: eligibility::EligibilityZKProof = eligibility::EligibilityZKProof::try_from_slice(&zk_proof).map_err(|_| error::RecruSearchError::InvalidParameterValue)?;
+        let info: eligibility::ParticipantInfo = eligibility::ParticipantInfo::try_from_slice(&participant_info).map_err(|_| RecruSearchError::InvalidParameterValue)?;
+        let proof: eligibility::EligibilityZKProof = eligibility::EligibilityZKProof::try_from_slice(&zk_proof).map_err(|_| RecruSearchError::InvalidParameterValue)?;
         ctx.accounts.verify_eligibility_with_zk(study_id, info, proof)
     }
 
@@ -62,6 +59,10 @@ pub mod recru_search {
 
     pub fn submit_data(ctx: Context<SubmitData>, encrypted_data_hash: [u8; 32], ipfs_cid: String) -> Result<()> {
         ctx.accounts.submit_data(encrypted_data_hash, ipfs_cid, &ctx.bumps)
+    }
+
+    pub fn mint_completion_nft(ctx: Context<MintCompletionNFT>) -> Result<()> {
+        ctx.accounts.mint_completion_nft()
     }
 
     pub fn create_reward_vault(ctx: Context<CreateRewardVault>, study_id: u64, initial_deposit: u64) -> Result<()> {
@@ -78,5 +79,25 @@ pub mod recru_search {
 
     pub fn finalize_survey_schema(ctx: Context<FinalizeSurveySchema>, study_id: u64) -> Result<()> {
         ctx.accounts.finalize_survey_schema(study_id)
+    }
+
+    pub fn anonymize_participant_data(ctx: Context<AnonymizeParticipantData>, study_id: u64, anonymization_config: data_management::AnonymizationConfig, response_ids: Vec<u64>) -> Result<data_management::AnonymizationReport> {
+        ctx.accounts.handle_anonymize_data(study_id, anonymization_config, response_ids)
+    }
+
+    pub fn export_survey_data(ctx: Context<ExportSurveyData>, study_id: u64, export_format: data_management::ExportFormat, include_files: bool, anonymize_responses: bool) -> Result<data_management::ExportManifest> {
+        ctx.accounts.export_survey_data(study_id, export_format, include_files, anonymize_responses)
+    }
+
+    pub fn generate_compliance_report(ctx: Context<GenerateComplianceReport>, study_id: u64) -> Result<data_management::ComplianceReport> {
+        ctx.accounts.generate_compliance_report(study_id)
+    }
+
+    pub fn verify_data_quality(ctx: Context<VerifyDataQuality>, study_id: u64, responses_to_verify: Vec<data_management::ResponseQualityCheck>) -> Result<data_management::QualityVerificationReport> {
+        ctx.accounts.verify_data_quality(study_id, responses_to_verify)
+    }
+
+    pub fn process_gdpr_deletion(ctx: Context<ProcessGDPRDeletion>, study_id: u64, deletion_request: data_management::GDPRDeletionRequest) -> Result<data_management::GDPRDeletionReport> {
+        ctx.accounts.process_gdpr_deletion(study_id, deletion_request)
     }
 }

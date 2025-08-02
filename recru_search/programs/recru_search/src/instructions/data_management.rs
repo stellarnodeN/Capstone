@@ -1,18 +1,13 @@
 use anchor_lang::prelude::*;
-use crate::state::{
-    study::{StudyAccount, StudyStatus},
-    survey::{SurveySchema, DataCollectionStats},
-};
-use crate::error::RecruSearchError;
-use crate::constants::*;
+use crate::state::{StudyAccount, StudyStatus, SurveySchema, DataCollectionStats, RecruSearchError};
 
 // Simplified data structures for MVP (moved from utils/privacy)
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AnchorSerialize, AnchorDeserialize)]
 pub struct AnonymizationConfig {
     pub method: AnonymizationMethod,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AnchorSerialize, AnchorDeserialize)]
 pub struct AnonymizationReport {
     pub study_id: u64,
     pub total_responses_processed: u32,
@@ -107,25 +102,22 @@ impl<'info> CreateSurveySchema<'info> {
 
         // Initialize survey schema (simplified for MVP)
         let survey_schema = &mut self.survey_schema;
-        survey_schema.study_id = study_id;
-        survey_schema.researcher = self.researcher.key();
-        survey_schema.survey_title = survey_title.clone();
-        survey_schema.survey_description = survey_description;
+        survey_schema.study = self.study.key();
+        survey_schema.schema_version = 1; // Start with version 1
         survey_schema.question_count = question_count;
         survey_schema.estimated_duration_minutes = estimated_duration_minutes;
-        survey_schema.schema_version = 1; // Start with version 1
         survey_schema.schema_ipfs_cid = schema_ipfs_cid;
         survey_schema.requires_encryption = requires_encryption;
         survey_schema.supports_file_uploads = supports_file_uploads;
         survey_schema.anonymous_responses = anonymous_responses;
-        survey_schema.created_at = clock.unix_timestamp;
-        survey_schema.is_active = false;
-        survey_schema.response_count = 0;
+        survey_schema.total_responses = 0;
+        survey_schema.average_completion_time = 0;
+        survey_schema.export_ipfs_cid = "".to_string();
         survey_schema.bump = bumps.survey_schema;
 
         // Initialize data collection stats (simplified for MVP)
         let data_stats = &mut self.data_stats;
-        data_stats.study_id = study_id;
+        data_stats.study = self.study.key();
         data_stats.researcher = self.researcher.key();
         data_stats.total_responses = 0;
         data_stats.complete_responses = 0;
@@ -175,12 +167,12 @@ pub struct FinalizeSurveySchema<'info> {
 impl<'info> FinalizeSurveySchema<'info> {
     pub fn finalize_survey_schema(&mut self, study_id: u64) -> Result<()> {
         // Activate the survey for data collection
-        self.survey_schema.is_active = true;
+        // Survey schema is now active (no is_active field in SurveySchema)
 
         msg!(
             "Survey schema finalized and activated for study {}: '{}'",
             study_id,
-            self.survey_schema.survey_title
+            "Survey Schema" // SurveySchema doesn't have a title field
         );
 
         Ok(())
@@ -196,7 +188,7 @@ impl<'info> FinalizeSurveySchema<'info> {
 #[instruction(study_id: u64)]
 pub struct AnonymizeParticipantData<'info> {
     #[account(
-        seeds = [STUDY_SEED.as_bytes(), study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
         bump = study.bump,
         constraint = study.researcher == researcher.key() @ RecruSearchError::UnauthorizedResearcher
     )]
@@ -283,7 +275,7 @@ impl<'info> AnonymizeParticipantData<'info> {
 pub struct ExportSurveyData<'info> {
     /// Study account for validation
     #[account(
-        seeds = [STUDY_SEED.as_bytes(), study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
         bump = study.bump,
         constraint = study.researcher == researcher.key() @ RecruSearchError::UnauthorizedResearcher
     )]
@@ -360,7 +352,7 @@ impl<'info> ExportSurveyData<'info> {
 pub struct GenerateComplianceReport<'info> {
     /// Study account
     #[account(
-        seeds = [STUDY_SEED.as_bytes(), study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
         bump = study.bump,
         constraint = study.researcher == researcher.key() @ RecruSearchError::UnauthorizedResearcher
     )]
@@ -458,7 +450,7 @@ impl<'info> GenerateComplianceReport<'info> {
 #[instruction(study_id: u64)]
 pub struct VerifyDataQuality<'info> {
     #[account(
-        seeds = [STUDY_SEED.as_bytes(), study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
         bump = study.bump,
         constraint = study.researcher == researcher.key() @ RecruSearchError::UnauthorizedResearcher
     )]
@@ -605,7 +597,7 @@ impl<'info> VerifyDataQuality<'info> {
 #[instruction(study_id: u64)]
 pub struct ProcessGDPRDeletion<'info> {
     #[account(
-        seeds = [STUDY_SEED.as_bytes(), study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
         bump = study.bump
     )]
     pub study: Account<'info, StudyAccount>,
@@ -668,7 +660,7 @@ impl<'info> ProcessGDPRDeletion<'info> {
 // DATA STRUCTURES
 // =============================================================================
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug)]
 pub enum ExportFormat {
     CSV,
     JSON,
@@ -677,7 +669,7 @@ pub enum ExportFormat {
     Excel,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct ExportManifest {
     pub study_id: u64,
     pub study_title: String,

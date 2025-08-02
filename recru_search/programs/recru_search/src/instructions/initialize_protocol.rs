@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
-use crate::state::admin::AdminState;
-use crate::error::RecruSearchError;
-use crate::constants::*;
+use crate::state::{AdminAccount, RecruSearchError};
+use crate::state::constants::{DEFAULT_PROTOCOL_FEE_BPS, MAX_PROTOCOL_FEE_BPS, MIN_STUDY_DURATION, MAX_STUDY_DURATION};
 
 /// Initialize the global protocol state
 /// This must be called once when deploying the program
@@ -10,11 +9,11 @@ pub struct InitializeProtocol<'info> {
     #[account(
         init,
         payer = protocol_admin,
-        space = 8 + AdminState::INIT_SPACE,
-        seeds = [ADMIN_SEED.as_bytes()],
+        space = 8 + AdminAccount::INIT_SPACE,
+        seeds = [b"admin"],
         bump
     )]
-    pub admin_state: Account<'info, AdminState>,
+    pub admin_state: Account<'info, AdminAccount>,
 
     #[account(mut)]
     pub protocol_admin: Signer<'info>,
@@ -88,12 +87,14 @@ impl<'info> InitializeProtocol<'info> {
         admin_state.protocol_admin = self.protocol_admin.key();
         
         // Set protocol configuration
-        admin_state.protocol_fee_basis_points = config.protocol_fee_basis_points;
-        admin_state.min_study_duration = config.min_study_duration;
-        admin_state.max_study_duration = config.max_study_duration;
+        admin_state.protocol_fee_bps = config.protocol_fee_basis_points;
+        admin_state.min_study_duration = config.min_study_duration as u64;
+        admin_state.max_study_duration = config.max_study_duration as u64;
         
         // Set initial state
-        admin_state.paused = false; // Protocol starts active
+        admin_state.total_studies = 0;
+        admin_state.total_participants = 0;
+        admin_state.total_rewards_distributed = 0;
         admin_state.bump = bumps.admin_state;
 
         Ok(())
@@ -105,7 +106,7 @@ impl<'info> InitializeProtocol<'info> {
         
         msg!("Protocol initialized | Admin: {} | Fee: {}% | Status: Active", 
              admin_state.protocol_admin, 
-             admin_state.protocol_fee_basis_points as f64 / 100.0
+             admin_state.protocol_fee_bps as f64 / 100.0
         );
 
         Ok(())

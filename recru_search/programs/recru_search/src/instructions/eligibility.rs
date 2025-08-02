@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
-use crate::state::study::{StudyAccount, StudyStatus};
-use crate::error::RecruSearchError;
-use crate::constants::*;
+use crate::state::{StudyAccount, StudyStatus, RecruSearchError};
+
 
 /// Set eligibility criteria for a study (User Story #2)
 #[derive(Accounts)]
@@ -9,7 +8,7 @@ use crate::constants::*;
 pub struct SetEligibilityCriteria<'info> {
     #[account(
         mut,
-        seeds = [STUDY_SEED.as_bytes(), study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
         bump = study.bump,
         constraint = study.researcher == researcher.key() @ RecruSearchError::UnauthorizedResearcher,
         constraint = study.status == StudyStatus::Draft @ RecruSearchError::InvalidStudyState
@@ -25,7 +24,7 @@ pub struct SetEligibilityCriteria<'info> {
 #[instruction(study_id: u64)]
 pub struct VerifyEligibility<'info> {
     #[account(
-        seeds = [STUDY_SEED.as_bytes(), study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
         bump = study.bump,
         constraint = study.status == StudyStatus::Published @ RecruSearchError::StudyNotPublished
     )]
@@ -40,7 +39,7 @@ pub struct VerifyEligibility<'info> {
 #[instruction(study_id: u64)]
 pub struct VerifyEligibilityWithZK<'info> {
     #[account(
-        seeds = [STUDY_SEED.as_bytes(), study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
         bump = study.bump,
         constraint = study.status == StudyStatus::Published @ RecruSearchError::StudyNotPublished,
         constraint = study.requires_zk_proof @ RecruSearchError::ZKProofValidationFailed
@@ -88,9 +87,17 @@ impl<'info> SetEligibilityCriteria<'info> {
     pub fn set_eligibility_criteria(
         &mut self,
         study_id: u64,
-        criteria: EligibilityCriteria,
+        criteria_bytes: Vec<u8>,
     ) -> Result<()> {
         let study = &mut self.study;
+
+        // Deserialize eligibility criteria from bytes
+        let criteria: EligibilityCriteria = EligibilityCriteria::try_from_slice(&criteria_bytes)
+            .map_err(|_| RecruSearchError::InvalidParameterValue)?;
+
+        // Store eligibility criteria
+        study.eligibility_criteria = criteria_bytes;
+        study.has_eligibility_criteria = true;
 
         // If any criteria require ZK proofs, mark the study accordingly
         let requires_zk = criteria.min_age.is_some() || 
@@ -100,6 +107,7 @@ impl<'info> SetEligibilityCriteria<'info> {
 
         msg!("Eligibility criteria set for study: {}", study_id);
         msg!("Requires ZK proof: {}", requires_zk);
+        msg!("Criteria stored successfully");
 
         Ok(())
     }
@@ -113,18 +121,92 @@ impl<'info> VerifyEligibility<'info> {
     ) -> Result<bool> {
         let study = &self.study;
         
-        // For MVP, do basic eligibility check
-        // TODO: Store eligibility criteria separately or expand StudyAccount
-        msg!("Basic eligibility check for study: {}", study_id);
-
-        // TODO: Implement full eligibility checking logic
-        // For now, check basic age requirement if available
-        if participant_info.age < 18 {
-            msg!("Participant must be at least 18 years old");
-            return Ok(false);
+        // Check if study has eligibility criteria
+        if !study.has_eligibility_criteria {
+            msg!("Study has no eligibility criteria - all participants eligible");
+            return Ok(true);
         }
 
-        msg!("Participant is eligible for study: {}", study_id);
+        // Deserialize eligibility criteria
+        let criteria: EligibilityCriteria = EligibilityCriteria::try_from_slice(&study.eligibility_criteria)
+            .map_err(|_| RecruSearchError::InvalidParameterValue)?;
+
+        msg!("Verifying eligibility for study: {}", study_id);
+
+        // Check age requirements
+        if let Some(min_age) = criteria.min_age {
+            if participant_info.age < min_age {
+                msg!("Participant age {} is below minimum required age {}", participant_info.age, min_age);
+                return Ok(false);
+            }
+        }
+
+        if let Some(max_age) = criteria.max_age {
+            if participant_info.age > max_age {
+                msg!("Participant age {} is above maximum allowed age {}", participant_info.age, max_age);
+                return Ok(false);
+            }
+        }
+
+        // Check gender requirement
+        if let Some(required_gender) = &criteria.gender {
+            if participant_info.gender.to_lowercase() != required_gender.to_lowercase() {
+                msg!("Participant gender '{}' does not match required gender '{}'", 
+                     participant_info.gender, required_gender);
+                return Ok(false);
+            }
+        }
+
+        // Check location requirement
+        if let Some(required_location) = &criteria.location {
+            if participant_info.location.to_lowercase() != required_location.to_lowercase() {
+                msg!("Participant location '{}' does not match required location '{}'", 
+                     participant_info.location, required_location);
+                return Ok(false);
+            }
+        }
+
+        // Check education level requirement
+        if let Some(required_education) = &criteria.education_level {
+            if participant_info.education_level.to_lowercase() != required_education.to_lowercase() {
+                msg!("Participant education '{}' does not match required education '{}'", 
+                     participant_info.education_level, required_education);
+                return Ok(false);
+            }
+        }
+
+        // Check employment status requirement
+        if let Some(required_employment) = &criteria.employment_status {
+            if participant_info.employment_status.to_lowercase() != required_employment.to_lowercase() {
+                msg!("Participant employment '{}' does not match required employment '{}'", 
+                     participant_info.employment_status, required_employment);
+                return Ok(false);
+            }
+        }
+
+        // Check medical conditions (exclusion criteria)
+        if let Some(excluded_conditions) = &criteria.medical_conditions {
+            for condition in excluded_conditions {
+                if participant_info.medical_conditions.iter().any(|c| c.to_lowercase() == condition.to_lowercase()) {
+                    msg!("Participant has excluded medical condition: {}", condition);
+                    return Ok(false);
+                }
+            }
+        }
+
+        // Check custom requirements
+        if let Some(custom_requirements) = &criteria.custom_requirements {
+            for requirement in custom_requirements {
+                if !participant_info.additional_info.as_ref()
+                    .map(|info| info.iter().any(|item| item.to_lowercase() == requirement.to_lowercase()))
+                    .unwrap_or(false) {
+                    msg!("Participant does not meet custom requirement: {}", requirement);
+                    return Ok(false);
+                }
+            }
+        }
+
+        msg!("Participant meets all eligibility criteria for study: {}", study_id);
         Ok(true)
     }
 }
@@ -145,7 +227,10 @@ impl<'info> VerifyEligibilityWithZK<'info> {
         require!(zk_proof.verification_key.len() > 0, RecruSearchError::ZKProofValidationFailed);
 
         // For MVP, simplified ZK proof verification
-        msg!("ZK proof eligibility check for study: {}", study_id);
+        msg!("ZK proof eligibility check for study: {} (Title: {})", study_id, study.title);
+
+        // Validate that study has eligibility criteria set
+        require!(study.has_eligibility_criteria, RecruSearchError::NoEligibilityCriteria);
 
         // For sensitive criteria (age, medical conditions), use ZK proof verification
         // This is a placeholder - actual implementation would verify the ZK proof

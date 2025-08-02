@@ -39,6 +39,10 @@ pub enum RecruSearchError {
     StudyNotPublished = 6202,
     #[msg("Study is full")]
     StudyFull = 6203,
+    #[msg("Study already closed")]
+    StudyAlreadyClosed = 6204,
+    #[msg("Consent not active")]
+    ConsentNotActive = 6205,
 
     // Data Validation (6300-6399)
     #[msg("Invalid data format")]
@@ -47,8 +51,14 @@ pub enum RecruSearchError {
     InvalidIPFSCID = 6301,
     #[msg("Invalid eligibility proof")]
     InvalidEligibilityProof = 6302,
+    
+    #[msg("Participant does not meet eligibility criteria")]
+    ParticipantNotEligible = 6303,
+    
+    #[msg("Study has no eligibility criteria set")]
+    NoEligibilityCriteria = 6304,
     #[msg("ZK proof validation failed")]
-    ZKProofValidationFailed = 6303,
+    ZKProofValidationFailed = 6305,
 
     // Participant Issues (6400-6499)
     #[msg("Consent revoked")]
@@ -61,8 +71,12 @@ pub enum RecruSearchError {
     InsufficientFunds = 6500,
     #[msg("Reward already claimed")]
     RewardAlreadyClaimed = 6501,
+    #[msg("Reward already distributed")]
+    RewardAlreadyDistributed = 6502,
+    #[msg("Reward not distributed")]
+    RewardNotDistributed = 6503,
     #[msg("Excessive protocol fee")]
-    ExcessiveProtocolFee = 6502,
+    ExcessiveProtocolFee = 6504,
 
     // Processing Issues (6600-6699)
     #[msg("Anonymization failed")]

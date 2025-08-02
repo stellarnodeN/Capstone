@@ -49,6 +49,15 @@ pub const COMPLETION_SEED: &str = "completion";
 #[constant]
 pub const REWARD_SEED: &str = "reward";
 
+#[constant]
+pub const REWARD_VAULT_SEED: &str = "vault";
+
+#[constant]
+pub const VAULT_TOKEN_SEED: &str = "vault_token";
+
+#[constant]
+pub const SURVEY_SCHEMA_SEED: &str = "schema";
+
 // Time-based constants
 #[constant]
 pub const SECONDS_PER_DAY: i64 = 86400;
