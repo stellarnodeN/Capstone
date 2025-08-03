@@ -48,6 +48,7 @@ pub struct SubmitData<'info> {
 #[derive(Accounts)]
 pub struct MintCompletionNFT<'info> {
     #[account(
+        mut,
         seeds = [b"study", study.researcher.as_ref(), study.study_id.to_le_bytes().as_ref()],
         bump = study.bump,
         constraint = study.status == StudyStatus::Active || study.status == StudyStatus::Closed @ RecruSearchError::InvalidStudyState
@@ -67,7 +68,7 @@ pub struct MintCompletionNFT<'info> {
     )]
     pub submission: Account<'info, SubmissionAccount>,
 
-    /// CHECK: Asset account (the completion NFT itself)
+    /// CHECK: This is the asset account that will be used to mint the completion NFT
     #[account(mut)]
     pub asset: Signer<'info>,
 
@@ -76,7 +77,7 @@ pub struct MintCompletionNFT<'info> {
     
     pub system_program: Program<'info, System>,
 
-    /// CHECK: Metaplex Core Program for NFT creation
+    /// CHECK: This is the MPL Core program ID which is verified by the address constraint
     #[account(address = MPL_CORE_ID)]
     pub mpl_core_program: UncheckedAccount<'info>,
 }
@@ -91,16 +92,13 @@ impl<'info> SubmitData<'info> {
         let study = &self.study;
         let clock = Clock::get()?;
 
-        // Validate IPFS CID length
         require!(ipfs_cid.len() > 0 && ipfs_cid.len() <= 100, RecruSearchError::InvalidIPFSCID);
 
-        // Validate study is still accepting submissions
         require!(
             clock.unix_timestamp <= study.data_collection_end,
             RecruSearchError::InvalidDataCollectionPeriod
         );
 
-        // Initialize submission
         let submission = &mut self.submission;
         submission.participant = self.participant.key();
         submission.study = study.key();
@@ -127,11 +125,13 @@ impl<'info> MintCompletionNFT<'info> {
         let study = &self.study;
         let submission = &mut self.submission;
 
-        // Create Completion NFT using Metaplex Core
-        let metadata_uri = format!("https://api.recrusearch.com/completion/{}/{}", study.study_id, submission.participant);
+        let metadata_uri = "ipfs://bafkreihzn56xpmslsfakm3sjpnxquhdmgrip5snn3leyqbyzewuxzw2ofa".to_string();
         let completion_nft_name = format!("RecruSearch Completion #{}", study.study_id);
+        let completion_nft_symbol = "RSCOMPLETE";
+        let completion_nft_description = format!("Completion NFT for RecruSearch study #{} - This NFT represents successful completion of the research study.", study.study_id);
         
-        // Use CreateV2CpiBuilder as per Metaplex documentation
+        msg!("Creating Completion NFT with symbol: {} and description: {}", completion_nft_symbol, completion_nft_description);
+        
         CreateV2CpiBuilder::new(&self.mpl_core_program.to_account_info())
             .asset(&self.asset.to_account_info())
             .collection(None)
@@ -144,8 +144,11 @@ impl<'info> MintCompletionNFT<'info> {
             .uri(metadata_uri)
             .invoke()?;
 
-        // Update submission with completion NFT reference
         submission.completion_nft_mint = Some(self.asset.key());
+
+        // Increment study completion count
+        let study = &mut self.study;
+        study.completed_count = study.completed_count.saturating_add(1);
 
         msg!("SUCCESS: Completion NFT minted for participant: {}", self.participant.key());
         msg!("Completion NFT mint: {}", self.asset.key());

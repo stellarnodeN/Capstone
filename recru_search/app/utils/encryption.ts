@@ -1,18 +1,31 @@
 import { box, randomBytes } from 'tweetnacl';
 import { encode as encodeBase64, decode as decodeBase64 } from '@stablelib/base64';
 import { create } from 'ipfs-http-client';
-import { IPFSConfigManager } from './ipfs-config';
+import { IPFSConfigManager } from './ipfs-config.js';
+
+// Mock storage for development/testing
+const mockStorage = new Map<string, any>();
 
 export class EncryptionManager {
     private ipfs;
     private configManager: IPFSConfigManager;
     
     constructor() {
-        this.configManager = IPFSConfigManager.getInstance();
-        const config = this.configManager.getConnectionConfig();
+        this.configManager = new IPFSConfigManager();
+        const config = this.configManager.getConfig();
         
-        // Initialize IPFS client with production configuration
-        this.ipfs = create(config);
+        // For development/testing, use mock IPFS if no API key is available
+        if (config.provider === 'custom' && !config.apiKey) {
+            // Mock IPFS client for development
+            this.ipfs = null;
+        } else {
+            // Initialize IPFS client with production configuration
+            this.ipfs = create({
+                host: config.endpoint || 'localhost',
+                port: 5001,
+                protocol: 'http'
+            });
+        }
     }
 
     /**
@@ -58,6 +71,9 @@ export class EncryptionManager {
         if (config.provider === 'custom' && !config.apiKey) {
             // Mock IPFS implementation for development
             const mockCid = `mock-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            
+            // Store the original data in mock storage for decryption
+            mockStorage.set(mockCid, data);
             
             return {
                 encrypted: encryptedMessage,
@@ -129,10 +145,21 @@ export class DecryptionManager {
     private configManager: IPFSConfigManager;
     
     constructor() {
-        this.configManager = IPFSConfigManager.getInstance();
-        const config = this.configManager.getConnectionConfig();
+        this.configManager = new IPFSConfigManager();
+        const config = this.configManager.getConfig();
         
-        this.ipfs = create(config);
+        // For development/testing, use mock IPFS if no API key is available
+        if (config.provider === 'custom' && !config.apiKey) {
+            // Mock IPFS client for development
+            this.ipfs = null;
+        } else {
+            // Initialize IPFS client with production configuration
+            this.ipfs = create({
+                host: config.endpoint || 'localhost',
+                port: 5001,
+                protocol: 'http'
+            });
+        }
     }
 
     /**
@@ -146,12 +173,14 @@ export class DecryptionManager {
         
         // For development/testing, use mock IPFS if no API key is available
         if (config.provider === 'custom' && !config.apiKey) {
-            // Mock decryption for development - return sample data
-            return {
-                testData: "mock-decrypted-data",
-                timestamp: Date.now(),
-                participantId: "mock-participant-123"
-            };
+            // Mock decryption for development - retrieve original data from mock storage
+            const originalData = mockStorage.get(cid);
+            if (originalData) {
+                return originalData;
+            } else {
+                // Fallback if data not found in mock storage
+                throw new Error(`Mock data not found for CID: ${cid}`);
+            }
         }
         
         let lastError: Error | null = null;

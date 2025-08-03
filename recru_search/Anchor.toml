@@ -6,14 +6,27 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-recru_search = "6QUDidj9eAByDn5kqSrge47qsHWxv2b6yTxZuqt7sDVU"
-mpl_core = "CoREENxT6xw1fK2q8u9jJqqi7ryS6QZGFDG2UB3Yfu9M"
+recru_search = "HL4vrf5EV4eeaWyDLdzRgdjxxLiPfxiBvpWqjtKBPBNR"
+mpl_core = "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"
+
+[programs.devnet]
+recru_search = "HL4vrf5EV4eeaWyDLdzRgdjxxLiPfxiBvpWqjtKBPBNR"
+mpl_core = "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"
+
+[test]
+startup_wait = 5000
+
+[test.validator]
+url = "https://api.devnet.solana.com"
+
+[test.validator.bpf_programs]
+mpl_core = "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

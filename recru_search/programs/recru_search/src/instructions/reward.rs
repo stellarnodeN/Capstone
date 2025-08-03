@@ -6,7 +6,6 @@ use anchor_spl::{
 };
 use crate::state::{StudyAccount, StudyStatus, SubmissionAccount, ConsentAccount, RewardVault, RecruSearchError};
 
-
 #[derive(Accounts)]
 pub struct DistributeReward<'info> {
     #[account(
@@ -58,11 +57,9 @@ pub struct DistributeReward<'info> {
     )]
     pub submission: Account<'info, SubmissionAccount>,
 
-    /// Reward token mint (e.g., USDC)
     #[account(mut)]
     pub reward_mint: InterfaceAccount<'info, Mint>,
 
-    /// Participant's token account (destination of reward payment)
     #[account(
         init_if_needed,
         payer = participant,
@@ -71,7 +68,7 @@ pub struct DistributeReward<'info> {
     )]
     pub participant_token_account: InterfaceAccount<'info, TokenAccount>,
 
-    /// CHECK: Participant receiving the reward
+    /// CHECK: This is the participant account that will receive the reward
     #[account(mut)]
     pub participant: UncheckedAccount<'info>,
 
@@ -83,7 +80,6 @@ pub struct DistributeReward<'info> {
     pub system_program: Program<'info, System>,
 }
 
-/// Create reward vault for a study
 #[derive(Accounts)]
 #[instruction(study_id: u64)]
 pub struct CreateRewardVault<'info> {
@@ -142,20 +138,17 @@ impl<'info> CreateRewardVault<'info> {
         let study = &self.study;
         let vault = &mut self.reward_vault;
 
-        // Validate initial deposit
         let total_reward_needed = study.reward_amount_per_participant * study.max_participants as u64;
         require!(
             initial_deposit >= total_reward_needed,
             RecruSearchError::InsufficientFunds
         );
 
-        // Check researcher has enough tokens
         require!(
             self.researcher_token_account.amount >= initial_deposit,
             RecruSearchError::InsufficientFunds
         );
 
-        // Initialize vault
         vault.study = study.key();
         vault.reward_token_mint = self.reward_token_mint.key();
         vault.total_deposited = initial_deposit;
@@ -163,7 +156,6 @@ impl<'info> CreateRewardVault<'info> {
         vault.vault_authority = vault.key();
         vault.bump = bumps.reward_vault;
 
-        // Transfer tokens from researcher to vault
         let cpi_accounts = TransferChecked {
             from: self.researcher_token_account.to_account_info(),
             mint: self.reward_token_mint.to_account_info(),
@@ -189,7 +181,6 @@ impl<'info> CreateRewardVault<'info> {
     }
 }
 
-// Helper function for vault PDA signer seeds
 fn vault_signer_seeds(study_key: &Pubkey, vault_bump: u8) -> ([u8; 5], Vec<u8>, [u8; 1]) {
     (b"vault".clone(), study_key.to_bytes().to_vec(), [vault_bump])
 }
@@ -200,34 +191,28 @@ impl<'info> DistributeReward<'info> {
         let submission = &mut self.submission;
         let vault = &mut self.reward_vault;
 
-        // Validate reward claim
         let clock = Clock::get()?;
         
-        // Check if study allows reward claims
         require!(
             study.status == StudyStatus::Active || 
             study.status == StudyStatus::Closed,
             RecruSearchError::InvalidStudyState
         );
 
-        // Check if sufficient time has passed since submission
-        let min_time_before_claim = 24 * 60 * 60; // 24 hours in seconds
+        let min_time_before_claim = 24 * 60 * 60; // 24 hours
         require!(
             clock.unix_timestamp >= submission.submission_timestamp + min_time_before_claim,
             RecruSearchError::InvalidDataCollectionPeriod
         );
 
-        // Check if vault has enough token balance
         let vault_token_balance = self.vault_token_account.amount;
         require!(
             vault_token_balance >= study.reward_amount_per_participant,
             RecruSearchError::InsufficientFunds
         );
 
-        // Transfer reward tokens from vault to participant using PDA signing
         let reward_amount = study.reward_amount_per_participant;
         
-        // Create signer seeds for vault PDA
         let (prefix, study_bytes, bump) = vault_signer_seeds(&study.key(), vault.bump);
         let signer_seeds: &[&[u8]] = &[&prefix, &study_bytes, &bump];
         let signer_seeds = &[signer_seeds];
@@ -248,17 +233,19 @@ impl<'info> DistributeReward<'info> {
             self.reward_mint.decimals,
         )?;
 
-        // Update vault state
         vault.total_distributed = vault.total_distributed.saturating_add(reward_amount);
-
-        // Mark reward as distributed
         submission.reward_distributed = true;
+
+        // Update study's total rewards distributed
+        let study = &mut self.study;
+        study.total_rewards_distributed = study.total_rewards_distributed.saturating_add(reward_amount);
 
         msg!("Reward distributed successfully from vault");
         msg!("Amount: {} tokens", reward_amount);
         msg!("Participant: {}", self.participant.key());
         msg!("Study: {}", study.study_id);
         msg!("Vault total distributed: {}", vault.total_distributed);
+        msg!("Study total rewards distributed: {}", study.total_rewards_distributed);
 
         Ok(())
     }

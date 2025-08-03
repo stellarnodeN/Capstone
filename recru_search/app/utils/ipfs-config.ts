@@ -1,231 +1,96 @@
-export interface IPFSConfig {
-    provider: 'web3storage' | 'nftstorage' | 'pinata' | 'custom';
-    host?: string;
-    port?: number;
-    protocol?: 'http' | 'https';
-    apiKey?: string;
-    timeout?: number;
-    retries?: number;
-}
+import { IPFSHTTPClient } from 'ipfs-http-client';
 
-export interface IPFSProviderConfig {
-    pinata: {
-        apiKey: string;
-        secretApiKey: string;
-        gateway: string;
-    };
-    web3storage: {
-        apiToken: string;
-        endpoint: string;
-    };
-    nftstorage: {
-        apiToken: string;
-        endpoint: string;
-    };
-    custom: {
-        host: string;
-        port: number;
-        protocol: 'http' | 'https';
-        apiKey?: string;
-    };
+export interface IPFSConfig {
+  provider: 'pinata' | 'infura' | 'custom';
+  apiKey?: string;
+  apiSecret?: string;
+  endpoint?: string;
+  gateway?: string;
+  retries?: number;
+  timeout?: number;
 }
 
 export class IPFSConfigManager {
-    private static instance: IPFSConfigManager;
-    private config: IPFSConfig;
+  private config: IPFSConfig;
 
-    private constructor() {
-        this.config = this.loadConfig();
+  constructor() {
+    this.config = {
+      provider: 'custom',
+      endpoint: 'http://localhost:5001',
+      gateway: 'https://gateway.pinata.cloud'
+    };
+  }
+
+  getConfig(): IPFSConfig {
+    return this.config;
+  }
+
+  setConfig(config: IPFSConfig) {
+    this.config = config;
+  }
+
+  async uploadMetadata(metadata: any): Promise<string> {
+    const config = this.getConfig();
+    
+    if (config.provider === 'pinata' && config.apiKey) {
+      return this.uploadToPinata(metadata, config);
+    } else if (config.provider === 'infura' && config.apiKey) {
+      return this.uploadToInfura(metadata, config);
+    } else {
+      // For development/testing, return a mock IPFS hash
+      console.log('Using mock IPFS upload for development');
+      return 'ipfs://bafkreibmockmetadatahashforconsentnft';
     }
+  }
 
-    public static getInstance(): IPFSConfigManager {
-        if (!IPFSConfigManager.instance) {
-            IPFSConfigManager.instance = new IPFSConfigManager();
-        }
-        return IPFSConfigManager.instance;
+  private async uploadToPinata(metadata: any, config: IPFSConfig): Promise<string> {
+    try {
+      const response = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'pinata_api_key': config.apiKey!,
+          'pinata_secret_api_key': config.apiSecret!
+        },
+        body: JSON.stringify({
+          pinataMetadata: {
+            name: metadata.name || 'RecruSearch NFT Metadata'
+          },
+          pinataContent: metadata
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Pinata upload failed: ${response.statusText}`);
+      }
+
+      const result = await response.json() as { IpfsHash: string };
+      return `ipfs://${result.IpfsHash}`;
+    } catch (error) {
+      console.error('Error uploading to Pinata:', error);
+      throw error;
     }
+  }
 
-    private loadConfig(): IPFSConfig {
-        const env = process.env.NODE_ENV || 'development';
-        
-        if (env === 'production') {
-            return this.loadProductionConfig();
-        } else if (env === 'staging') {
-            return this.loadStagingConfig();
-        } else {
-            return this.loadDevelopmentConfig();
-        }
+  private async uploadToInfura(metadata: any, config: IPFSConfig): Promise<string> {
+    try {
+      const response = await fetch('https://ipfs.infura.io:5001/api/v0/add', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${btoa(`${config.apiKey}:${config.apiSecret}`)}`
+        },
+        body: JSON.stringify(metadata)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Infura upload failed: ${response.statusText}`);
+      }
+
+      const result = await response.json() as { Hash: string };
+      return `ipfs://${result.Hash}`;
+    } catch (error) {
+      console.error('Error uploading to Infura:', error);
+      throw error;
     }
-
-    private loadProductionConfig(): IPFSConfig {
-        // Production configuration - use free IPFS providers
-        const provider = process.env.IPFS_PROVIDER as IPFSConfig['provider'] || 'web3storage';
-        
-        switch (provider) {
-            case 'pinata':
-                return {
-                    provider: 'pinata',
-                    apiKey: process.env.PINATA_API_KEY!,
-                    timeout: 30000,
-                    retries: 3
-                };
-            
-            case 'web3storage':
-                return {
-                    provider: 'web3storage',
-                    apiKey: process.env.WEB3STORAGE_API_TOKEN!,
-                    timeout: 30000,
-                    retries: 3
-                };
-            
-            case 'nftstorage':
-                return {
-                    provider: 'nftstorage',
-                    apiKey: process.env.NFTSTORAGE_API_TOKEN!,
-                    timeout: 30000,
-                    retries: 3
-                };
-            
-            case 'custom':
-                return {
-                    provider: 'custom',
-                    host: process.env.IPFS_HOST || 'localhost',
-                    port: parseInt(process.env.IPFS_PORT || '5001'),
-                    protocol: (process.env.IPFS_PROTOCOL as 'http' | 'https') || 'http',
-                    apiKey: process.env.IPFS_API_KEY,
-                    timeout: 30000,
-                    retries: 3
-                };
-            
-            default:
-                throw new Error(`Unsupported IPFS provider: ${provider}`);
-        }
-    }
-
-    private loadStagingConfig(): IPFSConfig {
-        // Staging configuration - use free providers
-        return {
-            provider: 'web3storage',
-            apiKey: process.env.WEB3STORAGE_API_TOKEN || 'test-token',
-            timeout: 15000,
-            retries: 2
-        };
-    }
-
-    private loadDevelopmentConfig(): IPFSConfig {
-        // Development configuration - use public gateway for testing
-        return {
-            provider: 'custom',
-            host: 'dweb.link',
-            port: 443,
-            protocol: 'https',
-            timeout: 10000,
-            retries: 1
-        };
-    }
-
-    public getConfig(): IPFSConfig {
-        return this.config;
-    }
-
-    public updateConfig(newConfig: Partial<IPFSConfig>): void {
-        this.config = { ...this.config, ...newConfig };
-    }
-
-    public getConnectionConfig() {
-        const config = this.getConfig();
-        
-        switch (config.provider) {
-            case 'pinata':
-                return {
-                    host: 'api.pinata.cloud',
-                    port: 443,
-                    protocol: 'https' as const,
-                    headers: {
-                        'pinata_api_key': config.apiKey!
-                    }
-                };
-            
-            case 'web3storage':
-                return {
-                    host: 'api.web3.storage',
-                    port: 443,
-                    protocol: 'https' as const,
-                    headers: {
-                        'Authorization': `Bearer ${config.apiKey}`
-                    }
-                };
-            
-            case 'nftstorage':
-                return {
-                    host: 'api.nft.storage',
-                    port: 443,
-                    protocol: 'https' as const,
-                    headers: {
-                        'Authorization': `Bearer ${config.apiKey}`
-                    }
-                };
-            
-            case 'custom':
-                return {
-                    host: config.host!,
-                    port: config.port!,
-                    protocol: config.protocol!,
-                    headers: config.apiKey ? {
-                        'Authorization': `Bearer ${config.apiKey}`
-                    } : undefined
-                };
-            
-            default:
-                throw new Error(`Unsupported provider: ${config.provider}`);
-        }
-    }
-}
-
-export class IPFSHealthChecker {
-    private configManager: IPFSConfigManager;
-
-    constructor() {
-        this.configManager = IPFSConfigManager.getInstance();
-    }
-
-    async checkHealth(): Promise<{
-        status: 'healthy' | 'degraded' | 'unhealthy';
-        latency: number;
-        error?: string;
-    }> {
-        const startTime = Date.now();
-        
-        try {
-            const config = this.configManager.getConnectionConfig();
-            const testData = { test: 'health-check', timestamp: Date.now() };
-            
-            // Create a temporary IPFS client for health check
-            const { create } = await import('ipfs-http-client');
-            const ipfs = create(config);
-            
-            // Try to add a small test file
-            const result = await ipfs.add(JSON.stringify(testData));
-            
-            // Try to read it back
-            const chunks = [];
-            for await (const chunk of ipfs.cat(result.path)) {
-                chunks.push(chunk);
-            }
-            
-            const latency = Date.now() - startTime;
-            
-            return {
-                status: latency < 5000 ? 'healthy' : 'degraded',
-                latency
-            };
-            
-        } catch (error) {
-            return {
-                status: 'unhealthy',
-                latency: Date.now() - startTime,
-                error: error instanceof Error ? error.message : 'Unknown error'
-            };
-        }
-    }
+  }
 } 

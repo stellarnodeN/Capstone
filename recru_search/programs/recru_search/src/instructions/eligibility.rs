@@ -1,8 +1,6 @@
 use anchor_lang::prelude::*;
 use crate::state::{StudyAccount, StudyStatus, RecruSearchError};
 
-
-/// Set eligibility criteria for a study (User Story #2)
 #[derive(Accounts)]
 #[instruction(study_id: u64)]
 pub struct SetEligibilityCriteria<'info> {
@@ -19,7 +17,6 @@ pub struct SetEligibilityCriteria<'info> {
     pub researcher: Signer<'info>,
 }
 
-/// Verify participant eligibility for a study
 #[derive(Accounts)]
 #[instruction(study_id: u64)]
 pub struct VerifyEligibility<'info> {
@@ -30,11 +27,10 @@ pub struct VerifyEligibility<'info> {
     )]
     pub study: Account<'info, StudyAccount>,
 
-    /// CHECK: Participant being verified for eligibility
+    /// CHECK: This is the participant account that will be verified for eligibility
     pub participant: UncheckedAccount<'info>,
 }
 
-/// Check eligibility with ZK proof verification
 #[derive(Accounts)]
 #[instruction(study_id: u64)]
 pub struct VerifyEligibilityWithZK<'info> {
@@ -46,11 +42,10 @@ pub struct VerifyEligibilityWithZK<'info> {
     )]
     pub study: Account<'info, StudyAccount>,
 
-    /// CHECK: Participant being verified for eligibility
+    /// CHECK: This is the participant account that will be verified for eligibility with ZK proof
     pub participant: UncheckedAccount<'info>,
 }
 
-// Eligibility criteria structure
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct EligibilityCriteria {
     pub min_age: Option<u8>,
@@ -63,7 +58,6 @@ pub struct EligibilityCriteria {
     pub custom_requirements: Option<Vec<String>>,
 }
 
-// Participant information for eligibility checking
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct ParticipantInfo {
     pub age: u8,
@@ -75,7 +69,6 @@ pub struct ParticipantInfo {
     pub additional_info: Option<Vec<String>>,
 }
 
-// ZK proof structure for privacy-preserving eligibility verification
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct EligibilityZKProof {
     pub proof: Vec<u8>,
@@ -91,15 +84,12 @@ impl<'info> SetEligibilityCriteria<'info> {
     ) -> Result<()> {
         let study = &mut self.study;
 
-        // Deserialize eligibility criteria from bytes
         let criteria: EligibilityCriteria = EligibilityCriteria::try_from_slice(&criteria_bytes)
             .map_err(|_| RecruSearchError::InvalidParameterValue)?;
 
-        // Store eligibility criteria
         study.eligibility_criteria = criteria_bytes;
         study.has_eligibility_criteria = true;
 
-        // If any criteria require ZK proofs, mark the study accordingly
         let requires_zk = criteria.min_age.is_some() || 
                          criteria.max_age.is_some() ||
                          criteria.medical_conditions.is_some();
@@ -121,19 +111,16 @@ impl<'info> VerifyEligibility<'info> {
     ) -> Result<bool> {
         let study = &self.study;
         
-        // Check if study has eligibility criteria
         if !study.has_eligibility_criteria {
             msg!("Study has no eligibility criteria - all participants eligible");
             return Ok(true);
         }
 
-        // Deserialize eligibility criteria
         let criteria: EligibilityCriteria = EligibilityCriteria::try_from_slice(&study.eligibility_criteria)
             .map_err(|_| RecruSearchError::InvalidParameterValue)?;
 
         msg!("Verifying eligibility for study: {}", study_id);
 
-        // Check age requirements
         if let Some(min_age) = criteria.min_age {
             if participant_info.age < min_age {
                 msg!("Participant age {} is below minimum required age {}", participant_info.age, min_age);
@@ -148,7 +135,6 @@ impl<'info> VerifyEligibility<'info> {
             }
         }
 
-        // Check gender requirement
         if let Some(required_gender) = &criteria.gender {
             if participant_info.gender.to_lowercase() != required_gender.to_lowercase() {
                 msg!("Participant gender '{}' does not match required gender '{}'", 
@@ -157,7 +143,6 @@ impl<'info> VerifyEligibility<'info> {
             }
         }
 
-        // Check location requirement
         if let Some(required_location) = &criteria.location {
             if participant_info.location.to_lowercase() != required_location.to_lowercase() {
                 msg!("Participant location '{}' does not match required location '{}'", 
@@ -166,7 +151,6 @@ impl<'info> VerifyEligibility<'info> {
             }
         }
 
-        // Check education level requirement
         if let Some(required_education) = &criteria.education_level {
             if participant_info.education_level.to_lowercase() != required_education.to_lowercase() {
                 msg!("Participant education '{}' does not match required education '{}'", 
@@ -175,7 +159,6 @@ impl<'info> VerifyEligibility<'info> {
             }
         }
 
-        // Check employment status requirement
         if let Some(required_employment) = &criteria.employment_status {
             if participant_info.employment_status.to_lowercase() != required_employment.to_lowercase() {
                 msg!("Participant employment '{}' does not match required employment '{}'", 
@@ -184,7 +167,6 @@ impl<'info> VerifyEligibility<'info> {
             }
         }
 
-        // Check medical conditions (exclusion criteria)
         if let Some(excluded_conditions) = &criteria.medical_conditions {
             for condition in excluded_conditions {
                 if participant_info.medical_conditions.iter().any(|c| c.to_lowercase() == condition.to_lowercase()) {
@@ -194,7 +176,6 @@ impl<'info> VerifyEligibility<'info> {
             }
         }
 
-        // Check custom requirements
         if let Some(custom_requirements) = &criteria.custom_requirements {
             for requirement in custom_requirements {
                 if !participant_info.additional_info.as_ref()
@@ -221,19 +202,14 @@ impl<'info> VerifyEligibilityWithZK<'info> {
         let study = &self.study;
         
         // TODO: Implement actual ZK proof verification
-        // For now, do basic validation
         require!(zk_proof.proof.len() > 0, RecruSearchError::ZKProofValidationFailed);
         require!(zk_proof.public_inputs.len() > 0, RecruSearchError::ZKProofValidationFailed);
         require!(zk_proof.verification_key.len() > 0, RecruSearchError::ZKProofValidationFailed);
 
-        // For MVP, simplified ZK proof verification
         msg!("ZK proof eligibility check for study: {} (Title: {})", study_id, study.title);
 
-        // Validate that study has eligibility criteria set
         require!(study.has_eligibility_criteria, RecruSearchError::NoEligibilityCriteria);
 
-        // For sensitive criteria (age, medical conditions), use ZK proof verification
-        // This is a placeholder - actual implementation would verify the ZK proof
         let is_eligible = self.verify_zk_proof_placeholder(&zk_proof, &participant_info)?;
 
         if is_eligible {
@@ -251,11 +227,6 @@ impl<'info> VerifyEligibilityWithZK<'info> {
         _participant_info: &ParticipantInfo,
     ) -> Result<bool> {
         // TODO: Implement actual ZK proof verification logic
-        // This would typically involve:
-        // 1. Verifying the proof against the verification key
-        // 2. Checking that public inputs match the criteria
-        // 3. Ensuring the proof proves knowledge of satisfying private inputs
-        
         msg!("ZK proof verification placeholder - assuming valid");
         Ok(true)
     }

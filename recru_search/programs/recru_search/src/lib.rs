@@ -8,7 +8,7 @@ pub mod state;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("6QUDidj9eAByDn5kqSrge47qsHWxv2b6yTxZuqt7sDVU");
+declare_id!("HL4vrf5EV4eeaWyDLdzRgdjxxLiPfxiBvpWqjtKBPBNR");
 
 #[program]
 pub mod recru_search {

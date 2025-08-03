@@ -1,0 +1,37 @@
+{
+    "name": "RecruSearch Consent #1",
+    "symbol": "RSCONSENT",
+    "description": "Consent NFT for RecruSearch study #1 - This NFT represents the participant's consent to participate in this research study.",
+    "image": "ipfs://bafkreiaich32x7g4cajovenhlnvn3jfedf3vkh4pqiyfa6g2e26zi7chkm",
+    "attributes": [
+      {
+        "trait_type": "Study ID",
+        "value": "1"
+      },
+      {
+        "trait_type": "Type",
+        "value": "Consent NFT"
+      },
+      {
+        "trait_type": "Platform",
+        "value": "RecruSearch"
+      },
+      {
+        "trait_type": "Status",
+        "value": "Active"
+      },
+      {
+        "trait_type": "Created",
+        "value": "2024"
+      }
+    ],
+    "properties": {
+      "files": [
+        {
+          "type": "image/jpeg",
+          "uri": "ipfs://bafkreiaich32x7g4cajovenhlnvn3jfedf3vkh4pqiyfa6g2e26zi7chkm"
+        }
+      ],
+      "category": "image"
+    }
+  }

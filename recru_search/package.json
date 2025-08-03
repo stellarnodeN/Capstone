@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "license": "ISC",
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
@@ -6,7 +7,8 @@
     "test:ipfs": "ts-node app/utils/test-ipfs.ts",
     "test:ipfs:dev": "NODE_ENV=development ts-node app/utils/test-ipfs.ts",
     "test:ipfs:staging": "NODE_ENV=staging ts-node app/utils/test-ipfs.ts",
-    "test:ipfs:prod": "NODE_ENV=production ts-node app/utils/test-ipfs.ts"
+    "test:ipfs:prod": "NODE_ENV=production ts-node app/utils/test-ipfs.ts",
+    "rebuild": "npm rebuild"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",

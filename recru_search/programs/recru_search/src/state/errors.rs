@@ -51,10 +51,8 @@ pub enum RecruSearchError {
     InvalidIPFSCID = 6301,
     #[msg("Invalid eligibility proof")]
     InvalidEligibilityProof = 6302,
-    
     #[msg("Participant does not meet eligibility criteria")]
     ParticipantNotEligible = 6303,
-    
     #[msg("Study has no eligibility criteria set")]
     NoEligibilityCriteria = 6304,
     #[msg("ZK proof validation failed")]

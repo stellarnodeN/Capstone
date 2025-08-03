@@ -1,0 +1,41 @@
+{
+    "name": "RecruSearch Completion #1",
+    "symbol": "RSCOMPLETE",
+    "description": "Completion NFT for RecruSearch study #1 - This NFT represents successful completion of the research study.",
+    "image": "ipfs://bafkreiaich32x7g4cajovenhlnvn3jfedf3vkh4pqiyfa6g2e26zi7chkm",
+    "attributes": [
+      {
+        "trait_type": "Study ID",
+        "value": "1"
+      },
+      {
+        "trait_type": "Type",
+        "value": "Completion NFT"
+      },
+      {
+        "trait_type": "Platform",
+        "value": "RecruSearch"
+      },
+      {
+        "trait_type": "Status",
+        "value": "Completed"
+      },
+      {
+        "trait_type": "Achievement",
+        "value": "Study Participant"
+      },
+      {
+        "trait_type": "Created",
+        "value": "2024"
+      }
+    ],
+    "properties": {
+      "files": [
+        {
+          "type": "image/jpeg",
+          "uri": "ipfs://bafkreiaich32x7g4cajovenhlnvn3jfedf3vkh4pqiyfa6g2e26zi7chkm"
+        }
+      ],
+      "category": "image"
+    }
+  }
