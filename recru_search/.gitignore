@@ -11,5 +11,6 @@ test-ledger
 dist/
 build/
 *.md
+app/
 
 
