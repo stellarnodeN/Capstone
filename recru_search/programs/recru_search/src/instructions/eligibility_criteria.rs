@@ -27,8 +27,9 @@ pub struct VerifyEligibility<'info> {
     )]
     pub study: Account<'info, StudyAccount>,
 
-    /// CHECK: This is the participant account that will be verified for eligibility
-    pub participant: UncheckedAccount<'info>,
+    /// CHECK: Participant account for eligibility verification
+    /// We validate this is the correct participant for the eligibility check
+    pub participant: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -42,8 +43,9 @@ pub struct VerifyEligibilityWithZK<'info> {
     )]
     pub study: Account<'info, StudyAccount>,
 
-    /// CHECK: This is the participant account that will be verified for eligibility with ZK proof
-    pub participant: UncheckedAccount<'info>,
+    /// CHECK: Participant account for eligibility verification with ZK proof
+    /// We validate this is the correct participant for the eligibility check
+    pub participant: Signer<'info>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -110,6 +112,9 @@ impl<'info> VerifyEligibility<'info> {
         participant_info: ParticipantInfo,
     ) -> Result<bool> {
         let study = &self.study;
+        let participant = &self.participant;
+        
+        msg!("Verifying eligibility for participant {} in study: {}", participant.key(), study_id);
         
         if !study.has_eligibility_criteria {
             msg!("Study has no eligibility criteria - all participants eligible");
@@ -187,7 +192,7 @@ impl<'info> VerifyEligibility<'info> {
             }
         }
 
-        msg!("Participant meets all eligibility criteria for study: {}", study_id);
+        msg!("Participant {} meets all eligibility criteria for study: {}", participant.key(), study_id);
         Ok(true)
     }
 }
@@ -200,22 +205,24 @@ impl<'info> VerifyEligibilityWithZK<'info> {
         zk_proof: EligibilityZKProof,
     ) -> Result<bool> {
         let study = &self.study;
+        let participant = &self.participant;
         
         // TODO: Implement actual ZK proof verification
         require!(zk_proof.proof.len() > 0, RecruSearchError::ZKProofValidationFailed);
         require!(zk_proof.public_inputs.len() > 0, RecruSearchError::ZKProofValidationFailed);
         require!(zk_proof.verification_key.len() > 0, RecruSearchError::ZKProofValidationFailed);
 
-        msg!("ZK proof eligibility check for study: {} (Title: {})", study_id, study.title);
+        msg!("ZK proof eligibility check for participant {} in study: {} (Title: {})", 
+             participant.key(), study_id, study.title);
 
         require!(study.has_eligibility_criteria, RecruSearchError::NoEligibilityCriteria);
 
         let is_eligible = self.verify_zk_proof_placeholder(&zk_proof, &participant_info)?;
 
         if is_eligible {
-            msg!("ZK proof verification successful for study: {}", study_id);
+            msg!("ZK proof verification successful for participant {} in study: {}", participant.key(), study_id);
         } else {
-            msg!("ZK proof verification failed for study: {}", study_id);
+            msg!("ZK proof verification failed for participant {} in study: {}", participant.key(), study_id);
         }
 
         Ok(is_eligible)

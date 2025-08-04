@@ -30,7 +30,7 @@ pub enum RecruSearchError {
     #[msg("Unauthorized access")]
     UnauthorizedAccess = 6102,
 
-    // State/Status Issues (6200-6299)
+    // State Errors (6200-6299)
     #[msg("Invalid study state")]
     InvalidStudyState = 6200,
     #[msg("Invalid status transition")]
@@ -58,13 +58,13 @@ pub enum RecruSearchError {
     #[msg("ZK proof validation failed")]
     ZKProofValidationFailed = 6305,
 
-    // Participant Issues (6400-6499)
+    // Participant Errors (6400-6499)
     #[msg("Consent revoked")]
     ConsentRevoked = 6400,
     #[msg("Already submitted")]
     AlreadySubmitted = 6401,
 
-    // Financial/Token Issues (6500-6599)
+    // Token Errors (6500-6599)
     #[msg("Insufficient funds")]
     InsufficientFunds = 6500,
     #[msg("Reward already claimed")]
@@ -76,7 +76,7 @@ pub enum RecruSearchError {
     #[msg("Excessive protocol fee")]
     ExcessiveProtocolFee = 6504,
 
-    // Processing Issues (6600-6699)
+    // Processing Errors (6600-6699)
     #[msg("Anonymization failed")]
     AnonymizationFailed = 6600,
     #[msg("Arithmetic error")]

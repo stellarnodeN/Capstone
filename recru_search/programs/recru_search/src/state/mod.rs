@@ -1,15 +1,12 @@
-// State module organization following Anchor best practices
-pub mod accounts;    // All account data structures
-pub mod constants;   // Program constants and configuration
-pub mod errors;      // Custom error definitions
-pub mod events;      // Event definitions for logging
+pub mod accounts;    
+pub mod constants;   
+pub mod errors;     
+pub mod events;      
 
-// Re-export all state components
 pub use accounts::*;
 pub use constants::*;
 
 
-// Re-export specific items for easier access
 pub use accounts::{
     AdminAccount,
     StudyAccount,

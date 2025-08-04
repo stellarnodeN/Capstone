@@ -4,7 +4,7 @@ use mpl_core::{
     instructions::{CreateV2CpiBuilder, BurnV1CpiBuilder},
 };
 use crate::state::{StudyAccount, StudyStatus, ConsentAccount, SubmissionAccount, RecruSearchError};
-use crate::instructions::eligibility::{EligibilityCriteria, ParticipantInfo};
+use crate::instructions::eligibility_criteria::{EligibilityCriteria, ParticipantInfo};
 
 #[derive(Accounts)]
 #[instruction(study_id: u64)]

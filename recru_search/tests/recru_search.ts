@@ -1,19 +1,21 @@
 // Core imports
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { RecruSearch } from "../target/types/recru_search.js";
+import { RecruSearch } from "../target/types/recru_search";
 import { BN } from "bn.js";
 import { Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, Transaction } from "@solana/web3.js";
 import { MINT_SIZE, TOKEN_PROGRAM_ID, createAssociatedTokenAccountIdempotentInstruction, createInitializeMint2Instruction, createMintToInstruction, getAssociatedTokenAddressSync, getMinimumBalanceForRentExemptMint, getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
 import { MPL_CORE_PROGRAM_ID } from "@metaplex-foundation/mpl-core";
 import { expect } from "chai";
-import { EncryptionManager, DecryptionManager } from "../app/utils/encryption.js";
+import { EncryptionManager, DecryptionManager } from "../app/utils/encryption";
 
 describe("recru-search", () => {
-  // Setup provider and program
+  // Setup provider and program for existing devnet deployment
   anchor.setProvider(anchor.AnchorProvider.env());
   const provider = anchor.getProvider();
   const connection = provider.connection;
+  
+  // Use workspace which will connect to existing devnet deployment
   const program = anchor.workspace.RecruSearch as Program<RecruSearch>;
   const programId = program.programId;
 
@@ -177,10 +179,10 @@ describe("recru-search", () => {
     participant2 = Keypair.generate();
     rewardMint = Keypair.generate();
     
-    await airdropSol(admin, 10);
-    await airdropSol(researcher, 10);
-    await airdropSol(participant, 5);
-    await airdropSol(participant2, 5);
+    await airdropSol(admin, 2);
+    await airdropSol(researcher, 2);
+    await airdropSol(participant, 1);
+    await airdropSol(participant2, 1);
     
     const mint = await createMint(researcher);
     rewardMint = mint;

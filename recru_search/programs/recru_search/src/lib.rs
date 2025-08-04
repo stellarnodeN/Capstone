@@ -39,13 +39,13 @@ pub mod recru_search {
     }
 
     pub fn verify_eligibility(ctx: Context<VerifyEligibility>, study_id: u64, participant_info: Vec<u8>) -> Result<bool> {
-        let info: eligibility::ParticipantInfo = eligibility::ParticipantInfo::try_from_slice(&participant_info).map_err(|_| RecruSearchError::InvalidParameterValue)?;
+        let info: eligibility_criteria::ParticipantInfo = eligibility_criteria::ParticipantInfo::try_from_slice(&participant_info).map_err(|_| RecruSearchError::InvalidParameterValue)?;
         ctx.accounts.verify_eligibility(study_id, info)
     }
 
     pub fn verify_eligibility_with_zk(ctx: Context<VerifyEligibilityWithZK>, study_id: u64, participant_info: Vec<u8>, zk_proof: Vec<u8>) -> Result<bool> {
-        let info: eligibility::ParticipantInfo = eligibility::ParticipantInfo::try_from_slice(&participant_info).map_err(|_| RecruSearchError::InvalidParameterValue)?;
-        let proof: eligibility::EligibilityZKProof = eligibility::EligibilityZKProof::try_from_slice(&zk_proof).map_err(|_| RecruSearchError::InvalidParameterValue)?;
+        let info: eligibility_criteria::ParticipantInfo = eligibility_criteria::ParticipantInfo::try_from_slice(&participant_info).map_err(|_| RecruSearchError::InvalidParameterValue)?;
+        let proof: eligibility_criteria::EligibilityZKProof = eligibility_criteria::EligibilityZKProof::try_from_slice(&zk_proof).map_err(|_| RecruSearchError::InvalidParameterValue)?;
         ctx.accounts.verify_eligibility_with_zk(study_id, info, proof)
     }
 
@@ -73,31 +73,21 @@ pub mod recru_search {
         ctx.accounts.distribute_reward(&ctx.bumps)
     }
 
-    pub fn create_survey_schema(ctx: Context<CreateSurveySchema>, study_id: u64, survey_title: String, survey_description: String, question_count: u32, estimated_duration_minutes: u32, schema_ipfs_cid: String, requires_encryption: bool, supports_file_uploads: bool, anonymous_responses: bool) -> Result<()> {
-        ctx.accounts.create_survey_schema(study_id, survey_title, survey_description, question_count, estimated_duration_minutes, schema_ipfs_cid, requires_encryption, supports_file_uploads, anonymous_responses, &ctx.bumps)
+    pub fn create_survey_schema(ctx: Context<CreateSurveySchema>, study_id: u64, survey_title: String, survey_description: String, question_count: u32, estimated_duration_minutes: u32, schema_ipfs_cid: String, requires_encryption: bool, supports_file_uploads: bool) -> Result<()> {
+        ctx.accounts.create_survey_schema(study_id, survey_title, survey_description, question_count, estimated_duration_minutes, schema_ipfs_cid, requires_encryption, supports_file_uploads, &ctx.bumps)
     }
 
     pub fn finalize_survey_schema(ctx: Context<FinalizeSurveySchema>, study_id: u64) -> Result<()> {
         ctx.accounts.finalize_survey_schema(study_id)
     }
 
-    pub fn anonymize_participant_data(ctx: Context<AnonymizeParticipantData>, study_id: u64, anonymization_config: data_management::AnonymizationConfig, response_ids: Vec<u64>) -> Result<data_management::AnonymizationReport> {
-        ctx.accounts.handle_anonymize_data(study_id, anonymization_config, response_ids)
+    pub fn export_survey_data(ctx: Context<ExportSurveyData>, study_id: u64, export_format: data_management::ExportFormat, include_files: bool) -> Result<data_management::ExportManifest> {
+        ctx.accounts.export_survey_data(study_id, export_format, include_files)
     }
 
-    pub fn export_survey_data(ctx: Context<ExportSurveyData>, study_id: u64, export_format: data_management::ExportFormat, include_files: bool, anonymize_responses: bool) -> Result<data_management::ExportManifest> {
-        ctx.accounts.export_survey_data(study_id, export_format, include_files, anonymize_responses)
-    }
 
-    pub fn generate_compliance_report(ctx: Context<GenerateComplianceReport>, study_id: u64) -> Result<data_management::ComplianceReport> {
-        ctx.accounts.generate_compliance_report(study_id)
-    }
 
-    pub fn verify_data_quality(ctx: Context<VerifyDataQuality>, study_id: u64, responses_to_verify: Vec<data_management::ResponseQualityCheck>) -> Result<data_management::QualityVerificationReport> {
-        ctx.accounts.verify_data_quality(study_id, responses_to_verify)
-    }
 
-    pub fn process_gdpr_deletion(ctx: Context<ProcessGDPRDeletion>, study_id: u64, deletion_request: data_management::GDPRDeletionRequest) -> Result<data_management::GDPRDeletionReport> {
-        ctx.accounts.process_gdpr_deletion(study_id, deletion_request)
-    }
+
+
 }

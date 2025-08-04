@@ -91,6 +91,8 @@ pub struct RewardVault {
 #[derive(InitSpace)]
 pub struct SurveySchema {
     pub study: Pubkey,
+    #[max_len(100)]
+    pub title: String,
     pub schema_version: u32,
     pub question_count: u32,
     pub estimated_duration_minutes: u32,
@@ -98,7 +100,7 @@ pub struct SurveySchema {
     pub schema_ipfs_cid: String,
     pub requires_encryption: bool,
     pub supports_file_uploads: bool,
-    pub anonymous_responses: bool,
+    // anonymous_responses removed - not compatible with wallet-based participation
     pub total_responses: u32,
     pub average_completion_time: u32,
     #[max_len(100)]
@@ -115,8 +117,7 @@ pub struct DataCollectionStats {
     pub complete_responses: u32,
     pub validated_responses: u32,
     pub encrypted_responses: u32,
-    pub anonymized_responses: u32,
-    pub gdpr_deletion_requests: u32,
+    // anonymized_responses removed - not compatible with wallet-based participation
     pub total_files_uploaded: u32,
     pub total_file_size_mb: u32,
     pub average_completion_time_seconds: u32,

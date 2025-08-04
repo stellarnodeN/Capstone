@@ -68,7 +68,7 @@ pub struct MintCompletionNFT<'info> {
     )]
     pub submission: Account<'info, SubmissionAccount>,
 
-    /// CHECK: This is the asset account that will be used to mint the completion NFT
+    ///  This is the asset account that will be used to mint the completion NFT
     #[account(mut)]
     pub asset: Signer<'info>,
 

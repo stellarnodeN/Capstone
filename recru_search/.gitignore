@@ -5,4 +5,11 @@ target
 node_modules
 test-ledger
 .yarn
-.md
+**/*-wallet.json
+**/*-keypair.json
+**/id.json
+dist/
+build/
+*.md
+
+

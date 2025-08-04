@@ -1,7 +1,7 @@
 import { box, randomBytes } from 'tweetnacl';
 import { encode as encodeBase64, decode as decodeBase64 } from '@stablelib/base64';
 import { create } from 'ipfs-http-client';
-import { IPFSConfigManager } from './ipfs-config.js';
+import { IPFSConfigManager } from './ipfs-config';
 
 // Mock storage for development/testing
 const mockStorage = new Map<string, any>();

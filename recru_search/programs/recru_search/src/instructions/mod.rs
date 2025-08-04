@@ -1,17 +1,17 @@
 pub mod study;
-pub mod reward;
+pub mod rewards;
 pub mod consent;
-pub mod submission;
-pub mod initialize_protocol;
-pub mod query_helpers;
+pub mod data_submission;
+pub mod admin;
+pub mod queries;
 pub mod data_management;
-pub mod eligibility;
+pub mod eligibility_criteria;
 
 pub use study::*;
-pub use reward::*;
+pub use rewards::*;
 pub use consent::*;
-pub use submission::*;
-pub use initialize_protocol::*;
-pub use query_helpers::*;
+pub use data_submission::*;
+pub use admin::*;
+pub use queries::*;
 pub use data_management::*;
-pub use eligibility::*;
+pub use eligibility_criteria::*;
