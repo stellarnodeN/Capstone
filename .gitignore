@@ -11,3 +11,4 @@ test-ledger/
 *.log
 .DS_Store
 *.md
+*-wallet.json
