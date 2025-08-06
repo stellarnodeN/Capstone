@@ -1,17 +1,21 @@
 use anchor_lang::prelude::*;
 use crate::state::{StudyAccount, StudyStatus, SurveySchema, DataCollectionStats, RecruSearchError};
+use crate::state::constants::{MIN_IPFS_CID_LENGTH, MAX_IPFS_CID_LENGTH, IPFS_CID_V0_PREFIX, IPFS_CID_V1_PREFIX};
+use crate::state::events::SurveySchemaCreated;
 
-// DATA COLLECTION INSTRUCTIONS
+// Survey schema creation - defines data collection structure for studies
 
 #[derive(Accounts)]
 #[instruction(study_id: u64)]
 pub struct CreateSurveySchema<'info> {
+    // Study account for schema association
     #[account(
         constraint = study.researcher == researcher.key() @ RecruSearchError::UnauthorizedResearcher,
         constraint = study.status == StudyStatus::Published @ RecruSearchError::InvalidStatusTransition
     )]
     pub study: Account<'info, StudyAccount>,
 
+    // Survey schema account - stores survey definition
     #[account(
         init,
         payer = researcher,
@@ -21,6 +25,7 @@ pub struct CreateSurveySchema<'info> {
     )]
     pub survey_schema: Account<'info, SurveySchema>,
 
+    // Data collection stats account - tracks response metrics
     #[account(
         init,
         payer = researcher,
@@ -30,6 +35,7 @@ pub struct CreateSurveySchema<'info> {
     )]
     pub data_stats: Account<'info, DataCollectionStats>,
 
+    // Researcher creating the schema
     #[account(mut)]
     pub researcher: Signer<'info>,
 
@@ -37,6 +43,7 @@ pub struct CreateSurveySchema<'info> {
 }
 
 impl<'info> CreateSurveySchema<'info> {
+    // Creates survey schema and initializes data collection tracking
     pub fn create_survey_schema(
         &mut self,
         study_id: u64,
@@ -51,7 +58,7 @@ impl<'info> CreateSurveySchema<'info> {
     ) -> Result<()> {
         let clock = Clock::get()?;
 
-        // Basic validation
+        // Validate survey parameters
         require!(
             survey_title.len() >= 5 && survey_title.len() <= 100,
             RecruSearchError::TitleTooLong
@@ -64,12 +71,17 @@ impl<'info> CreateSurveySchema<'info> {
             question_count > 0 && question_count <= 50, // MVP limit
             RecruSearchError::InvalidDataFormat
         );
+        // Validate IPFS CID format
         require!(
-            schema_ipfs_cid.len() >= 10 && schema_ipfs_cid.len() <= 100,
-            RecruSearchError::InvalidDataFormat
+            schema_ipfs_cid.len() >= MIN_IPFS_CID_LENGTH && schema_ipfs_cid.len() <= MAX_IPFS_CID_LENGTH,
+            RecruSearchError::InvalidIPFSCID
+        );
+        require!(
+            schema_ipfs_cid.starts_with(IPFS_CID_V0_PREFIX) || schema_ipfs_cid.starts_with(IPFS_CID_V1_PREFIX),
+            RecruSearchError::InvalidIPFSCID
         );
 
-        // Initialize survey schema
+        // Initialize survey schema account
         let survey_schema = &mut self.survey_schema;
         survey_schema.study = self.study.key();
         survey_schema.title = survey_title.clone();
@@ -84,7 +96,7 @@ impl<'info> CreateSurveySchema<'info> {
         survey_schema.export_ipfs_cid = String::new();
         survey_schema.bump = bumps.survey_schema;
 
-        // Initialize data collection stats
+        // Initialize data collection statistics
         let data_stats = &mut self.data_stats;
         data_stats.study = self.study.key();
         data_stats.researcher = self.researcher.key();
@@ -100,6 +112,7 @@ impl<'info> CreateSurveySchema<'info> {
         data_stats.last_updated = clock.unix_timestamp;
         data_stats.bump = bumps.data_stats;
 
+        // Log schema creation
         msg!(
             "Survey schema created: '{}' with {} questions for study {}",
             survey_title,
@@ -107,18 +120,31 @@ impl<'info> CreateSurveySchema<'info> {
             study_id
         );
 
+        // Emit survey schema created event
+        emit!(SurveySchemaCreated {
+            study_id,
+            researcher: self.researcher.key(),
+            schema_version: 1,
+            question_count,
+            estimated_duration: estimated_duration_minutes,
+        });
+
         Ok(())
     }
 }
 
+// Survey schema finalization - activates schema for data collection
+
 #[derive(Accounts)]
 #[instruction(study_id: u64)]
 pub struct FinalizeSurveySchema<'info> {
+    // Study account for validation
     #[account(
         constraint = study.researcher == researcher.key() @ RecruSearchError::UnauthorizedResearcher
     )]
     pub study: Account<'info, StudyAccount>,
 
+    // Survey schema to finalize
     #[account(
         mut,
         seeds = [b"survey", study.key().as_ref()],
@@ -126,11 +152,13 @@ pub struct FinalizeSurveySchema<'info> {
     )]
     pub survey_schema: Account<'info, SurveySchema>,
 
+    // Researcher finalizing the schema
     #[account(mut)]
     pub researcher: Signer<'info>,
 }
 
 impl<'info> FinalizeSurveySchema<'info> {
+    // Finalizes survey schema for active data collection
     pub fn finalize_survey_schema(&mut self, study_id: u64) -> Result<()> {
         
         msg!(
@@ -143,11 +171,12 @@ impl<'info> FinalizeSurveySchema<'info> {
     }
 }
 
-/// Export survey responses for research analysis
+// Data export - generates research data exports for analysis
+
 #[derive(Accounts)]
 #[instruction(study_id: u64)]
 pub struct ExportSurveyData<'info> {
-    /// Study account for validation
+    // Study account for validation
     #[account(
         seeds = [b"study", study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
         bump = study.bump,
@@ -155,14 +184,14 @@ pub struct ExportSurveyData<'info> {
     )]
     pub study: Account<'info, StudyAccount>,
 
-    /// Survey schema for metadata
+    // Survey schema for metadata
     #[account(
         seeds = [b"survey_schema", study.key().as_ref(), survey_schema.schema_version.to_le_bytes().as_ref()],
         bump = survey_schema.bump
     )]
     pub survey_schema: Account<'info, SurveySchema>,
 
-    /// Data collection statistics
+    // Data collection statistics
     #[account(
         mut,
         seeds = [b"data_stats", study.key().as_ref()],
@@ -170,12 +199,13 @@ pub struct ExportSurveyData<'info> {
     )]
     pub data_stats: Account<'info, DataCollectionStats>,
 
+    // Researcher requesting export
     #[account(mut)]
     pub researcher: Signer<'info>,
 }
 
 impl<'info> ExportSurveyData<'info> {
-    /// Generate export manifest with all survey responses and file uploads
+    // Generates export manifest with survey responses and file uploads
     pub fn export_survey_data(
         &mut self,
         study_id: u64,
@@ -201,6 +231,7 @@ impl<'info> ExportSurveyData<'info> {
             export_format as u8
         );
         
+        // Create export manifest
         let export_manifest = ExportManifest {
             study_id,
             study_title: study.title.clone(),
@@ -215,6 +246,7 @@ impl<'info> ExportSurveyData<'info> {
             export_ipfs_cid,
         };
 
+        // Log export details
         msg!(
             "Data export initiated for study {}: '{}' ({} responses, {} files)",
             study_id,
@@ -227,7 +259,7 @@ impl<'info> ExportSurveyData<'info> {
     }
 }
 
-// DATA STRUCTURES
+// Export format options for data downloads
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug)]
 pub enum ExportFormat {
     CSV,
@@ -237,6 +269,7 @@ pub enum ExportFormat {
     Excel,
 }
 
+// Export manifest structure - contains export metadata and statistics
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct ExportManifest {
     pub study_id: u64,

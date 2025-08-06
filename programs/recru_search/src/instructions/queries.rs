@@ -1,9 +1,12 @@
 use anchor_lang::prelude::*;
 use crate::state::{StudyAccount, StudyStatus, ConsentAccount, AdminAccount};
 
+// Study information queries - provides study details and progress
+
 #[derive(Accounts)]
 #[instruction(study_id: u64)]
 pub struct GetStudyInfo<'info> {
+    // Study account to query
     #[account(
         seeds = [b"study", study_account.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
         bump = study_account.bump
@@ -11,15 +14,19 @@ pub struct GetStudyInfo<'info> {
     pub study_account: Account<'info, StudyAccount>,
 }
 
+// Consent status queries - checks participant enrollment status
+
 #[derive(Accounts)]
 #[instruction(study_id: u64)]
 pub struct GetConsentStatus<'info> {
+    // Study account for reference
     #[account(
         seeds = [b"study", study_account.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
         bump = study_account.bump
     )]
     pub study_account: Account<'info, StudyAccount>,
 
+    // Consent account to check status
     #[account(
         seeds = [b"consent", study_account.key().as_ref(), participant.key().as_ref()],
         bump = consent_nft_account.bump
@@ -30,8 +37,11 @@ pub struct GetConsentStatus<'info> {
     pub participant: UncheckedAccount<'info>,
 }
 
+// Protocol statistics queries - provides global protocol information
+
 #[derive(Accounts)]
 pub struct GetProtocolStats<'info> {
+    // Admin state account for protocol stats
     #[account(
         seeds = [b"admin"],
         bump = admin_state.bump
@@ -40,10 +50,12 @@ pub struct GetProtocolStats<'info> {
 }
 
 impl<'info> GetStudyInfo<'info> {
+    // Retrieves comprehensive study information and progress metrics
     pub fn get_study_info(&self, _study_id: u64) -> Result<StudyInfo> {
         let study = &self.study_account;
         let clock = Clock::get()?;
 
+        // Calculate enrollment and time metrics
         let enrollment_progress = self.calculate_enrollment_progress(study, clock.unix_timestamp)?;
         let time_remaining = self.calculate_time_remaining(study, clock.unix_timestamp)?;
 
@@ -63,13 +75,16 @@ impl<'info> GetStudyInfo<'info> {
         })
     }
 
+    // Calculates enrollment progress percentages and status
     fn calculate_enrollment_progress(&self, study: &StudyAccount, current_time: i64) -> Result<EnrollmentProgress> {
+        // Calculate participant enrollment percentage
         let enrollment_percentage = if study.max_participants > 0 {
             (study.enrolled_count as f64 / study.max_participants as f64 * 100.0) as u8
         } else {
             0
         };
 
+        // Calculate time progress percentage
         let time_progress = if study.enrollment_end > study.enrollment_start {
             let total_time = study.enrollment_end - study.enrollment_start;
             let elapsed_time = current_time - study.enrollment_start;
@@ -85,7 +100,9 @@ impl<'info> GetStudyInfo<'info> {
         })
     }
 
+    // Calculates time remaining for different study phases
     fn calculate_time_remaining(&self, study: &StudyAccount, current_time: i64) -> Result<TimeRemaining> {
+        // Calculate seconds remaining for each phase
         let seconds_until_enrollment_start = (study.enrollment_start - current_time).max(0);
         let seconds_until_enrollment_end = (study.enrollment_end - current_time).max(0);
         let seconds_until_data_collection_end = (study.data_collection_end - current_time).max(0);
@@ -98,6 +115,7 @@ impl<'info> GetStudyInfo<'info> {
         })
     }
 
+    // Determines current study phase based on time and status
     fn determine_current_phase(&self, study: &StudyAccount, current_time: i64) -> Result<String> {
         if matches!(study.status, StudyStatus::Draft) {
             Ok("Draft".to_string())
@@ -114,6 +132,7 @@ impl<'info> GetStudyInfo<'info> {
 }
 
 impl<'info> GetConsentStatus<'info> {
+    // Retrieves participant consent status for a study
     pub fn get_consent_status(&self) -> Result<ConsentStatus> {
         let consent = &self.consent_nft_account;
         
@@ -128,6 +147,7 @@ impl<'info> GetConsentStatus<'info> {
 }
 
 impl<'info> GetProtocolStats<'info> {
+    // Retrieves global protocol statistics and configuration
     pub fn get_protocol_stats(&self) -> Result<ProtocolStats> {
         let admin_state = &self.admin_state;
         
@@ -141,6 +161,7 @@ impl<'info> GetProtocolStats<'info> {
     }
 }
 
+// Study information response structure
 #[derive(Debug)]
 pub struct StudyInfo {
     pub study_id: u64,
@@ -157,6 +178,7 @@ pub struct StudyInfo {
     pub created_at: i64,
 }
 
+// Enrollment progress metrics structure
 #[derive(Debug)]
 pub struct EnrollmentProgress {
     pub participants_percentage: u8,
@@ -164,6 +186,7 @@ pub struct EnrollmentProgress {
     pub is_enrollment_open: bool,
 }
 
+// Time remaining for study phases structure
 #[derive(Debug)]
 pub struct TimeRemaining {
     pub until_enrollment_start: i64,
@@ -172,6 +195,7 @@ pub struct TimeRemaining {
     pub current_phase: String,
 }
 
+// Consent status response structure
 #[derive(Debug)]
 pub struct ConsentStatus {
     pub has_consented: bool,
@@ -181,6 +205,7 @@ pub struct ConsentStatus {
     pub participant: Pubkey,
 }
 
+// Protocol statistics response structure
 #[derive(Debug)]
 pub struct ProtocolStats {
     pub protocol_admin: Pubkey,

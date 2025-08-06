@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-// Protocol Events
+// emitted when RecruSearch is first set up
 #[event]
 pub struct ProtocolInitialized {
     pub admin: Pubkey,
@@ -9,7 +9,7 @@ pub struct ProtocolInitialized {
     pub max_duration: u64,
 }
 
-// Study Events
+// track study creation, publication, and closure
 #[event]
 pub struct StudyCreated {
     pub study_id: u64,
@@ -33,7 +33,7 @@ pub struct StudyClosed {
     pub total_submissions: u32,
 }
 
-// Consent Events
+// track participant enrollment and withdrawal
 #[event]
 pub struct ConsentNFTMinted {
     pub study_id: u64,
@@ -49,7 +49,7 @@ pub struct ConsentRevoked {
     pub timestamp: i64,
 }
 
-// Data Submission Events
+//  track encrypted data uploads
 #[event]
 pub struct DataSubmitted {
     pub study_id: u64,
@@ -58,7 +58,7 @@ pub struct DataSubmitted {
     pub timestamp: i64,
 }
 
-// Reward Events
+//  track vault creation and token distribution
 #[event]
 pub struct RewardVaultCreated {
     pub study_id: u64,
@@ -75,7 +75,7 @@ pub struct RewardDistributed {
     pub timestamp: i64,
 }
 
-// Survey Schema Events
+//  track data collection setup
 #[event]
 pub struct SurveySchemaCreated {
     pub study_id: u64,
@@ -85,7 +85,7 @@ pub struct SurveySchemaCreated {
     pub estimated_duration: u32,
 }
 
-// Completion NFT Events
+//  track study completion rewards
 #[event]
 pub struct CompletionNFTMinted {
     pub study_id: u64,
@@ -94,7 +94,7 @@ pub struct CompletionNFTMinted {
     pub timestamp: i64,
 }
 
-// Error Events
+// log study-related errors for monitoring
 #[event]
 pub struct StudyError {
     pub study_id: u64,
@@ -103,7 +103,7 @@ pub struct StudyError {
     pub timestamp: i64,
 }
 
-// Statistics Events
+// track study performance metrics
 #[event]
 pub struct StudyStatistics {
     pub study_id: u64,

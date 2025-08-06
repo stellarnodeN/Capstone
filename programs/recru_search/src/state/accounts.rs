@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 
+// Study status enum - defines the lifecycle states of research studies
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, InitSpace, Debug)]
 pub enum StudyStatus {
     Draft,
@@ -8,6 +9,7 @@ pub enum StudyStatus {
     Closed,
 }
 
+// Global admin account - stores RecruSearch config
 #[account]
 #[derive(InitSpace)]
 pub struct AdminAccount {
@@ -21,6 +23,7 @@ pub struct AdminAccount {
     pub bump: u8,
 }
 
+// Study account - stores research study config and state
 #[account]
 #[derive(InitSpace)]
 pub struct StudyAccount {
@@ -40,13 +43,14 @@ pub struct StudyAccount {
     pub completed_count: u32,
     pub total_rewards_distributed: u64,
     pub created_at: i64,
-    pub requires_zk_proof: bool,
+
     pub has_eligibility_criteria: bool,
     #[max_len(1000)]
     pub eligibility_criteria: Vec<u8>,
     pub bump: u8,
 }
 
+// Consent account - tracks participant enrollment and consent status
 #[account]
 #[derive(InitSpace)]
 pub struct ConsentAccount {
@@ -61,6 +65,7 @@ pub struct ConsentAccount {
     pub bump: u8,
 }
 
+// Submission account - stores encrypted data submission metadata
 #[account]
 #[derive(InitSpace)]
 pub struct SubmissionAccount {
@@ -76,6 +81,7 @@ pub struct SubmissionAccount {
     pub bump: u8,
 }
 
+// Reward vault account - manages token rewards for study participants
 #[account]
 #[derive(InitSpace)]
 pub struct RewardVault {
@@ -83,10 +89,10 @@ pub struct RewardVault {
     pub reward_token_mint: Pubkey,
     pub total_deposited: u64,
     pub total_distributed: u64,
-    pub vault_authority: Pubkey,
     pub bump: u8,
 }
 
+// Survey schema account - defines data collection structure and metadata
 #[account]
 #[derive(InitSpace)]
 pub struct SurveySchema {
@@ -100,7 +106,6 @@ pub struct SurveySchema {
     pub schema_ipfs_cid: String,
     pub requires_encryption: bool,
     pub supports_file_uploads: bool,
-    // anonymous_responses removed - not compatible with wallet-based participation
     pub total_responses: u32,
     pub average_completion_time: u32,
     #[max_len(100)]
@@ -108,6 +113,7 @@ pub struct SurveySchema {
     pub bump: u8,
 }
 
+// Data collection statistics account - tracks survey response metrics
 #[account]
 #[derive(InitSpace)]
 pub struct DataCollectionStats {
@@ -117,7 +123,6 @@ pub struct DataCollectionStats {
     pub complete_responses: u32,
     pub validated_responses: u32,
     pub encrypted_responses: u32,
-    // anonymized_responses removed - not compatible with wallet-based participation
     pub total_files_uploaded: u32,
     pub total_file_size_mb: u32,
     pub average_completion_time_seconds: u32,

@@ -43,11 +43,7 @@ pub mod recru_search {
         ctx.accounts.verify_eligibility(study_id, info)
     }
 
-    pub fn verify_eligibility_with_zk(ctx: Context<VerifyEligibilityWithZK>, study_id: u64, participant_info: Vec<u8>, zk_proof: Vec<u8>) -> Result<bool> {
-        let info: eligibility_criteria::ParticipantInfo = eligibility_criteria::ParticipantInfo::try_from_slice(&participant_info).map_err(|_| RecruSearchError::InvalidParameterValue)?;
-        let proof: eligibility_criteria::EligibilityZKProof = eligibility_criteria::EligibilityZKProof::try_from_slice(&zk_proof).map_err(|_| RecruSearchError::InvalidParameterValue)?;
-        ctx.accounts.verify_eligibility_with_zk(study_id, info, proof)
-    }
+
 
     pub fn mint_consent_nft(ctx: Context<MintConsentNFT>, study_id: u64, eligibility_proof: Vec<u8>) -> Result<()> {
         ctx.accounts.mint_consent_nft(study_id, eligibility_proof)

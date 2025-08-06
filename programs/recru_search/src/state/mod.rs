@@ -1,12 +1,15 @@
-pub mod accounts;    
-pub mod constants;   
-pub mod errors;     
+// State module - exports all account structures, constants, errors, and events
+
+pub mod accounts;
+pub mod constants;
+pub mod errors;
 pub mod events;      
 
+// Re-export all items for convenient access
 pub use accounts::*;
 pub use constants::*;
 
-
+// Export account structures for program instructions
 pub use accounts::{
     AdminAccount,
     StudyAccount,
@@ -17,6 +20,7 @@ pub use accounts::{
     DataCollectionStats,
 };
 
+// Export constants for validation and configuration
 pub use constants::{
     ADMIN_SEED,
     STUDY_SEED,
@@ -38,4 +42,5 @@ pub use constants::{
     MAX_STUDY_DURATION,
 };
 
+// Export error types for instruction validation
 pub use errors::RecruSearchError;

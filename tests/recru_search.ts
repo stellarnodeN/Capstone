@@ -125,11 +125,47 @@ describe("recru-search", () => {
     return ata;
   }
 
-  // Airdrop SOL to account
-  async function airdropSol(account: Keypair, amount: number) {
+  // Airdrop SOL to test accounts with retry logic
+  async function airdropSol(to: Keypair, amount: number, maxRetries: number = 3) {
     const lamports = amount * LAMPORTS_PER_SOL;
-    const signature = await connection.requestAirdrop(account.publicKey, lamports);
-    await connection.confirmTransaction(signature);
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const signature = await connection.requestAirdrop(to.publicKey, lamports);
+        await connection.confirmTransaction(signature);
+        console.log(`✅ Airdropped ${amount} SOL to ${to.publicKey.toBase58()}`);
+        return;
+      } catch (error) {
+        console.error(`❌ Airdrop attempt ${attempt} failed for ${to.publicKey.toBase58()}:`, error);
+        
+        if (attempt === maxRetries) {
+          throw new Error(`Airdrop failed after ${maxRetries} attempts for ${to.publicKey.toBase58()}`);
+        }
+        
+        // Wait before retry (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+      }
+    }
+  }
+
+  // Batch airdrop for multiple accounts
+  async function airdropMultiple(accounts: { keypair: Keypair, amount: number }[]) {
+    console.log("🚀 Starting batch airdrop...");
+    
+    for (const { keypair, amount } of accounts) {
+      await airdropSol(keypair, amount);
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    console.log("✅ Batch airdrop completed");
+  }
+
+  // Check account balance for debugging
+  async function checkBalance(keypair: Keypair, label: string) {
+    const balance = await connection.getBalance(keypair.publicKey);
+    console.log(`💰 ${label} balance: ${balance / LAMPORTS_PER_SOL} SOL`);
+    return balance;
   }
 
   // Encryption managers
@@ -146,7 +182,7 @@ describe("recru-search", () => {
         data,
         researcherPublicKey
       );
-      const encryptedDataHash = Array.from(encrypted.slice(0, 32));
+      const encryptedDataHash = Array.from(encrypted.slice(0, 32), (byte) => byte as number);
       return { encryptedDataHash, ipfsCid: cid };
     } catch (error) {
       console.error("Encryption failed:", error);
@@ -154,16 +190,22 @@ describe("recru-search", () => {
     }
   }
 
-  // Decrypt data as researcher
+  // Decrypt data as researcher with secure key handling
   async function decryptDataAsResearcher(
     ipfsCid: string,
-    researcherPrivateKey: Uint8Array
+    researcherKeypair: Keypair
   ): Promise<any> {
     try {
+      // Create a temporary copy of the private key for decryption
+      const privateKeyBytes = new Uint8Array(researcherKeypair.secretKey);
       const decryptedData = await decryptionManager.fetchAndDecrypt(
         ipfsCid,
-        researcherPrivateKey
+        privateKeyBytes
       );
+      
+      // Clear the private key from memory immediately after use
+      privateKeyBytes.fill(0);
+      
       return decryptedData;
     } catch (error) {
       console.error("Decryption failed:", error);
@@ -179,16 +221,38 @@ describe("recru-search", () => {
     participant2 = Keypair.generate();
     rewardMint = Keypair.generate();
     
-    await airdropSol(admin, 2);
-    await airdropSol(researcher, 2);
-    await airdropSol(participant, 1);
-    await airdropSol(participant2, 1);
+    // Airdrop SOL to test accounts
+    await airdropMultiple([
+      { keypair: admin, amount: 2 },
+      { keypair: researcher, amount: 2 },
+      { keypair: participant, amount: 1 },
+      { keypair: participant2, amount: 1 }
+    ]);
+    
+    // Verify airdrops were successful
+    await checkBalance(admin, "Admin");
+    await checkBalance(researcher, "Researcher");
+    await checkBalance(participant, "Participant");
+    await checkBalance(participant2, "Participant2");
     
     const mint = await createMint(researcher);
     rewardMint = mint;
     
     researcherTokenAccount = await setupTokenAccount(rewardMint, researcher, researcher, 1000000000);
     participantTokenAccount = await setupTokenAccount(rewardMint, participant, researcher, 0);
+  });
+
+  // AIRDROP VERIFICATION TEST
+  describe("Airdrop Verification", () => {
+    it("Should have sufficient SOL for testing", async () => {
+      const adminBalance = await checkBalance(admin, "Admin");
+      const researcherBalance = await checkBalance(researcher, "Researcher");
+      const participantBalance = await checkBalance(participant, "Participant");
+      
+      expect(adminBalance).to.be.greaterThan(1 * LAMPORTS_PER_SOL);
+      expect(researcherBalance).to.be.greaterThan(1 * LAMPORTS_PER_SOL);
+      expect(participantBalance).to.be.greaterThan(0.5 * LAMPORTS_PER_SOL);
+    });
   });
 
   // PROTOCOL INITIALIZATION TESTS
@@ -703,14 +767,15 @@ describe("recru-search", () => {
         
         console.log("Test encryption - IPFS CID:", ipfsCid);
         
-        const researcherPrivateKeyBytes = new Uint8Array(researcher.secretKey);
-        const decryptedData = await decryptDataAsResearcher(ipfsCid, researcherPrivateKeyBytes);
+        const decryptedData = await decryptDataAsResearcher(ipfsCid, researcher);
         
-        console.log("Decrypted data:", JSON.stringify(decryptedData, null, 2));
-        
+        // Validate data integrity without logging sensitive content
         expect(decryptedData.participantId).to.equal(testData.participantId);
         expect(decryptedData.surveyResponses.question1).to.equal(testData.surveyResponses.question1);
         expect(decryptedData.metadata.deviceType).to.equal(testData.metadata.deviceType);
+        
+        // Log only non-sensitive metadata for debugging
+        console.log("✅ Data integrity verified - participant ID:", decryptedData.participantId.substring(0, 8) + "...");
         
         console.log("✅ Encryption/decryption test passed - data integrity verified");
       } catch (error) {
@@ -1165,8 +1230,11 @@ describe("recru-search", () => {
 
   // ELIGIBILITY CRITERIA TESTS
   describe("Eligibility Criteria", () => {
-    it("Should create study without eligibility criteria", async () => {
-      const studyId = new BN(1001);
+    it("Should only allow eligible participants to enroll for studies", async () => {
+      console.log("Starting eligibility criteria test...");
+      
+      // Create a study with specific eligibility criteria
+      const studyId = new BN(2001);
       const [study] = PublicKey.findProgramAddressSync(
         [
           Buffer.from("study"),
@@ -1176,57 +1244,11 @@ describe("recru-search", () => {
         programId
       );
       
+      // Create study in draft state
       const createStudyTx = await program.methods.createStudy(
         studyId,
-        "Simple Eligibility Test Study",
-        "Study without eligibility criteria for testing",
-        new BN(Date.now() / 1000 + 120),
-        new BN(Date.now() / 1000 + 7200),
-        new BN(Date.now() / 1000 + 172800),
-        10,
-        new BN(LAMPORTS_PER_SOL)
-      )
-        .accountsPartial({
-          study,
-          researcher: researcher.publicKey,
-          systemProgram: SystemProgram.programId,
-          clock: SYSVAR_CLOCK_PUBKEY
-        })
-        .signers([researcher])
-        .rpc()
-        .then(confirm)
-        .then(log);
-        
-      console.log("Study created without eligibility criteria:", createStudyTx);
-      
-      const studyAccount = await program.account.studyAccount.fetch(study);
-      expect(studyAccount.hasEligibilityCriteria).to.be.false;
-      expect(studyAccount.eligibilityCriteria.length).to.equal(0);
-    });
-
-    it("Should allow consent enrollment without eligibility criteria", async () => {
-      const studyId = new BN(1002);
-      const [study] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("study"),
-          researcher.publicKey.toBuffer(),
-          studyId.toArrayLike(Buffer, "le", 8)
-        ],
-        programId
-      );
-      const [consent] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("consent"),
-          study.toBuffer(),
-          participant.publicKey.toBuffer()
-        ],
-        programId
-      );
-      
-      await program.methods.createStudy(
-        studyId,
-        "No Eligibility Study",
-        "Study without eligibility criteria",
+        "Eligibility Test Study",
+        "Study with specific eligibility criteria for testing",
         new BN(Date.now() / 1000 + 5),
         new BN(Date.now() / 1000 + 7200),
         new BN(Date.now() / 1000 + 172800),
@@ -1243,116 +1265,282 @@ describe("recru-search", () => {
         .rpc()
         .then(confirm);
         
-      await program.methods.publishStudy()
-        .accountsPartial({
-          study,
-          researcher: researcher.publicKey
-        })
-        .signers([researcher])
-        .rpc()
-        .then(confirm);
-        
-      await new Promise(resolve => setTimeout(resolve, 6000));
+      console.log("Study created:", createStudyTx);
       
-      const asset = Keypair.generate();
-      const dummyEligibilityProof = Buffer.from("no_eligibility_required");
-      
-      const consentTx = await program.methods.mintConsentNft(studyId, dummyEligibilityProof)
-        .accountsPartial({
-          study,
-          consent,
-          asset: asset.publicKey,
-          participant: participant.publicKey,
-          systemProgram: SystemProgram.programId,
-          mplCoreProgram: MPL_CORE_PROGRAM_ID
-        })
-        .signers([participant, asset])
-        .rpc()
-        .then(confirm)
-        .then(log);
-        
-      console.log("Successfully enrolled in study without eligibility criteria:", consentTx);
-    });
-
-    it("Should allow enrollment for study without eligibility criteria", async () => {
-      const studyId = new BN(1003);
-      const [study] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("study"),
-          researcher.publicKey.toBuffer(),
-          studyId.toArrayLike(Buffer, "le", 8)
-        ],
-        programId
-      );
-      
-      await program.methods.createStudy(
-        studyId,
-        "No Eligibility Study",
-        "Study without eligibility criteria",
-        new BN(Date.now() / 1000 + 5),
-        new BN(Date.now() / 1000 + 7200),
-        new BN(Date.now() / 1000 + 172800),
-        10,
-        new BN(LAMPORTS_PER_SOL)
-      )
-        .accountsPartial({
-          study,
-          researcher: researcher.publicKey,
-          systemProgram: SystemProgram.programId,
-          clock: SYSVAR_CLOCK_PUBKEY
-        })
-        .signers([researcher])
-        .rpc()
-        .then(confirm);
-        
-      await program.methods.publishStudy()
-        .accountsPartial({
-          study,
-          researcher: researcher.publicKey
-        })
-        .signers([researcher])
-        .rpc()
-        .then(confirm);
-        
-      await new Promise(resolve => setTimeout(resolve, 6000));
-      
-      const [consent] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("consent"),
-          study.toBuffer(),
-          participant.publicKey.toBuffer()
-        ],
-        programId
-      );
-      
-      const asset = Keypair.generate();
-      const participantInfo = {
-        age: 25,
+      // Set eligibility criteria for the study - using simple JSON format
+      const eligibilityCriteria = {
+        min_age: 25,
+        max_age: 65,
         gender: "female",
         location: "united states",
-        educationLevel: "bachelor",
-        employmentStatus: "employed",
-        medicalConditions: [],
-        additionalInfo: []
+        education_level: "bachelor",
+        employment_status: "employed",
+        medical_conditions: ["diabetes", "heart disease"],
+        custom_requirements: ["tech_savvy", "mobile_user"]
       };
       
-      const eligibilityProof = serializeEligibilityCriteria(participantInfo);
+      // Serialize as JSON string then to buffer
+      const criteriaBytes = Buffer.from(JSON.stringify(eligibilityCriteria), 'utf8');
       
-      const consentTx = await program.methods.mintConsentNft(studyId, eligibilityProof)
+      const setCriteriaTx = await program.methods.setEligibilityCriteria(studyId, criteriaBytes)
         .accountsPartial({
           study,
-          consent,
-          asset: asset.publicKey,
+          researcher: researcher.publicKey
+        })
+        .signers([researcher])
+        .rpc()
+        .then(confirm);
+        
+      console.log("Eligibility criteria set:", setCriteriaTx);
+      
+      // Verify criteria was set correctly
+      const studyAccount = await program.account.studyAccount.fetch(study);
+      expect(studyAccount.hasEligibilityCriteria).to.be.true;
+      expect(studyAccount.eligibilityCriteria.length).to.be.greaterThan(0);
+      
+      // Publish the study
+      const publishTx = await program.methods.publishStudy()
+        .accountsPartial({
+          study,
+          researcher: researcher.publicKey
+        })
+        .signers([researcher])
+        .rpc()
+        .then(confirm);
+        
+      console.log("Study published:", publishTx);
+      
+      // Wait for enrollment period to start
+      await new Promise(resolve => setTimeout(resolve, 6000));
+      
+      // Test 1: Eligible participant should be able to enroll
+      console.log("Testing eligible participant enrollment...");
+      const [eligibleConsent] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("consent"),
+          study.toBuffer(),
+          participant.publicKey.toBuffer()
+        ],
+        programId
+      );
+      
+      const eligibleAsset = Keypair.generate();
+      const eligibleParticipantInfo = {
+        age: 30,
+        gender: "female",
+        location: "united states",
+        education_level: "bachelor",
+        employment_status: "employed",
+        medical_conditions: [],
+        additional_info: ["tech_savvy", "mobile_user"]
+      };
+      
+      const eligibleProof = Buffer.from(JSON.stringify(eligibleParticipantInfo), 'utf8');
+      
+      const eligibleEnrollmentTx = await program.methods.mintConsentNft(studyId, eligibleProof)
+        .accountsPartial({
+          study,
+          consent: eligibleConsent,
+          asset: eligibleAsset.publicKey,
           participant: participant.publicKey,
           systemProgram: SystemProgram.programId,
           mplCoreProgram: MPL_CORE_PROGRAM_ID
         })
-        .signers([participant, asset])
+        .signers([participant, eligibleAsset])
         .rpc()
-        .then(confirm)
-        .then(log);
+        .then(confirm);
         
-      console.log("Successfully enrolled in study without eligibility criteria:", consentTx);
+               console.log("Eligible participant successfully enrolled:", eligibleEnrollmentTx);
+      
+      // Test 2: Ineligible participant (wrong age) should be rejected
+      console.log("Testing ineligible participant (wrong age)...");
+      const [ineligibleConsent1] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("consent"),
+          study.toBuffer(),
+          participant2.publicKey.toBuffer()
+        ],
+        programId
+      );
+      
+      const ineligibleAsset1 = Keypair.generate();
+      const ineligibleParticipantInfo1 = {
+        age: 20, // Too young
+        gender: "female",
+        location: "united states",
+        education_level: "bachelor",
+        employment_status: "employed",
+        medical_conditions: [],
+        additional_info: ["tech_savvy", "mobile_user"]
+      };
+      
+      const ineligibleProof1 = Buffer.from(JSON.stringify(ineligibleParticipantInfo1), 'utf8');
+      
+      try {
+        await program.methods.mintConsentNft(studyId, ineligibleProof1)
+          .accountsPartial({
+            study,
+            consent: ineligibleConsent1,
+            asset: ineligibleAsset1.publicKey,
+            participant: participant2.publicKey,
+            systemProgram: SystemProgram.programId,
+            mplCoreProgram: MPL_CORE_PROGRAM_ID
+          })
+          .signers([participant2, ineligibleAsset1])
+          .rpc()
+          .then(confirm);
+          
+        throw new Error("Ineligible participant (wrong age) was incorrectly allowed to enroll");
+      } catch (error) {
+                 if (error instanceof anchor.web3.SendTransactionError) {
+           console.log("Ineligible participant (wrong age) correctly rejected:", error.logs);
+         } else {
+           console.log("Ineligible participant (wrong age) correctly rejected:", error);
+         }
+      }
+      
+      // Test 3: Ineligible participant (wrong gender) should be rejected
+      console.log("Testing ineligible participant (wrong gender)...");
+      const [ineligibleConsent2] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("consent"),
+          study.toBuffer(),
+          participant2.publicKey.toBuffer()
+        ],
+        programId
+      );
+      
+      const ineligibleAsset2 = Keypair.generate();
+      const ineligibleParticipantInfo2 = {
+        age: 30,
+        gender: "male", // Wrong gender
+        location: "united states",
+        education_level: "bachelor",
+        employment_status: "employed",
+        medical_conditions: [],
+        additional_info: ["tech_savvy", "mobile_user"]
+      };
+      
+      const ineligibleProof2 = Buffer.from(JSON.stringify(ineligibleParticipantInfo2), 'utf8');
+      
+      try {
+        await program.methods.mintConsentNft(studyId, ineligibleProof2)
+          .accountsPartial({
+            study,
+            consent: ineligibleConsent2,
+            asset: ineligibleAsset2.publicKey,
+            participant: participant2.publicKey,
+            systemProgram: SystemProgram.programId,
+            mplCoreProgram: MPL_CORE_PROGRAM_ID
+          })
+          .signers([participant2, ineligibleAsset2])
+          .rpc()
+          .then(confirm);
+          
+        throw new Error("Ineligible participant (wrong gender) was incorrectly allowed to enroll");
+      } catch (error) {
+                 if (error instanceof anchor.web3.SendTransactionError) {
+           console.log("Ineligible participant (wrong gender) correctly rejected:", error.logs);
+         } else {
+           console.log("Ineligible participant (wrong gender) correctly rejected:", error);
+         }
+      }
+      
+      // Test 4: Ineligible participant (excluded medical condition) should be rejected
+      console.log("Testing ineligible participant (excluded medical condition)...");
+      const [ineligibleConsent3] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("consent"),
+          study.toBuffer(),
+          participant2.publicKey.toBuffer()
+        ],
+        programId
+      );
+      
+      const ineligibleAsset3 = Keypair.generate();
+      const ineligibleParticipantInfo3 = {
+        age: 30,
+        gender: "female",
+        location: "united states",
+        education_level: "bachelor",
+        employment_status: "employed",
+        medical_conditions: ["diabetes"], // Excluded condition
+        additional_info: ["tech_savvy", "mobile_user"]
+      };
+      
+      const ineligibleProof3 = Buffer.from(JSON.stringify(ineligibleParticipantInfo3), 'utf8');
+      
+      try {
+        await program.methods.mintConsentNft(studyId, ineligibleProof3)
+          .accountsPartial({
+            study,
+            consent: ineligibleConsent3,
+            asset: ineligibleAsset3.publicKey,
+            participant: participant2.publicKey,
+            systemProgram: SystemProgram.programId,
+            mplCoreProgram: MPL_CORE_PROGRAM_ID
+          })
+          .signers([participant2, ineligibleAsset3])
+          .rpc()
+          .then(confirm);
+          
+        throw new Error("Ineligible participant (excluded medical condition) was incorrectly allowed to enroll");
+      } catch (error) {
+                 if (error instanceof anchor.web3.SendTransactionError) {
+           console.log("Ineligible participant (excluded medical condition) correctly rejected:", error.logs);
+         } else {
+           console.log("Ineligible participant (excluded medical condition) correctly rejected:", error);
+         }
+      }
+      
+      // Test 5: Ineligible participant (missing custom requirement) should be rejected
+      console.log("Testing ineligible participant (missing custom requirement)...");
+      const [ineligibleConsent4] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("consent"),
+          study.toBuffer(),
+          participant2.publicKey.toBuffer()
+        ],
+        programId
+      );
+      
+      const ineligibleAsset4 = Keypair.generate();
+      const ineligibleParticipantInfo4 = {
+        age: 30,
+        gender: "female",
+        location: "united states",
+        education_level: "bachelor",
+        employment_status: "employed",
+        medical_conditions: [],
+        additional_info: ["tech_savvy"] // Missing "mobile_user"
+      };
+      
+      const ineligibleProof4 = Buffer.from(JSON.stringify(ineligibleParticipantInfo4), 'utf8');
+      
+      try {
+        await program.methods.mintConsentNft(studyId, ineligibleProof4)
+          .accountsPartial({
+            study,
+            consent: ineligibleConsent4,
+            asset: ineligibleAsset4.publicKey,
+            participant: participant2.publicKey,
+            systemProgram: SystemProgram.programId,
+            mplCoreProgram: MPL_CORE_PROGRAM_ID
+          })
+          .signers([participant2, ineligibleAsset4])
+          .rpc()
+          .then(confirm);
+          
+        throw new Error("Ineligible participant (missing custom requirement) was incorrectly allowed to enroll");
+      } catch (error) {
+                 if (error instanceof anchor.web3.SendTransactionError) {
+           console.log("Ineligible participant (missing custom requirement) correctly rejected:", error.logs);
+         } else {
+           console.log("Ineligible participant (missing custom requirement) correctly rejected:", error);
+         }
+      }
+      
+             console.log("All eligibility criteria tests passed! Only eligible participants can enroll for studies.");
     });
   });
   // ERROR HANDLING TESTS

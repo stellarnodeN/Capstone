@@ -17,7 +17,7 @@ mpl_core = "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"
 startup_wait = 5000
 
 [test.validator]
-url = "https://api.devnet.solana.com"
+url = "http://localhost:8899"
 
 [test.validator.bpf_programs]
 mpl_core = "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"
@@ -26,8 +26,8 @@ mpl_core = "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "programs/Turbin3-wallet.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json --timeout 60000 tests/**/*.ts"
