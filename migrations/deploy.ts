@@ -12,7 +12,7 @@ module.exports = async function (provider: anchor.AnchorProvider) {
   const program = anchor.workspace.RecruSearch as Program<RecruSearch>;
   const programId = program.programId;
   
-  console.log("🚀 Deploying RecruSearch to Devnet...");
+  console.log("Deploying RecruSearch to Devnet...");
   console.log("Program ID:", programId.toString());
   
   try {
@@ -28,11 +28,11 @@ module.exports = async function (provider: anchor.AnchorProvider) {
     // Note: Protocol initialization will be done by the admin after deployment
     // This is just a placeholder for the deployment script
     
-    console.log("✅ RecruSearch deployed successfully!");
+    console.log("RecruSearch deployed successfully!");
     console.log("🔗 View on Solana Explorer: https://explorer.solana.com/address/" + programId.toString() + "?cluster=devnet");
     
   } catch (error) {
-    console.error("❌ Deployment failed:", error);
+    console.error("Deployment failed:", error);
     throw error;
   }
 };

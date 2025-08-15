@@ -1,10 +1,11 @@
 use anchor_lang::prelude::*;
 use mpl_core::{
     ID as MPL_CORE_ID,
-    instructions::{CreateV2CpiBuilder, BurnV1CpiBuilder},
+    instructions::{CreateV1CpiBuilder, BurnV1CpiBuilder},
+    types::{Attribute, Attributes, DataState, PluginAuthorityPair},
 };
-use crate::state::{StudyAccount, StudyStatus, ConsentAccount, SubmissionAccount, RecruSearchError};
-use crate::instructions::eligibility_criteria::{EligibilityCriteria, ParticipantInfo};
+use crate::state::{StudyAccount, StudyStatus, ConsentAccount, SubmissionAccount, RecruSearchError, CONSENT_NFT_TEMPLATE_IMAGE};
+use crate::instructions::eligibility_criteria::{EligibilityInfo, verify_participant_eligibility};
 use crate::state::events::{ConsentNFTMinted,ConsentRevoked};
 
 // Consent NFT minting - allows participants to enroll in studies
@@ -15,7 +16,7 @@ pub struct MintConsentNFT<'info> {
     // Study account to enroll in
     #[account(
         mut,
-        seeds = [b"study", study.researcher.key().as_ref(), study_id.to_le_bytes().as_ref()],
+        seeds = [b"study", study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
         bump = study.bump,
         constraint = study.status == StudyStatus::Published @ RecruSearchError::StudyNotPublished,
         constraint = study.enrolled_count < study.max_participants @ RecruSearchError::StudyFull
@@ -38,9 +39,8 @@ pub struct MintConsentNFT<'info> {
 
     /// CHECK: This is the asset account that will be used to mint the NFT
     #[account(mut)]
-    pub asset: Signer<'info>,
-
-    // Participant enrolling in the study
+    pub asset: UncheckedAccount<'info>,
+    
     #[account(mut)]
     pub participant: Signer<'info>,
     
@@ -50,9 +50,7 @@ pub struct MintConsentNFT<'info> {
     #[account(address = MPL_CORE_ID)]
     pub mpl_core_program: UncheckedAccount<'info>,
 }
-
 // Consent revocation - allows participants to withdraw from studies
-
 #[derive(Accounts)]
 pub struct RevokeConsent<'info> {
     // Consent account to revoke
@@ -86,7 +84,7 @@ pub struct RevokeConsent<'info> {
 
     pub system_program: Program<'info, System>,
 
-    // Optional submission account - prevents revocation after data submission
+    
     #[account(
         seeds = [
             b"submission",
@@ -116,13 +114,13 @@ impl<'info> MintConsentNFT<'info> {
             clock.unix_timestamp <= study.enrollment_end,
             RecruSearchError::InvalidEnrollmentPeriod
         );
-
-        // Verify eligibility if criteria are set
+         // Verify eligibility if criteria are set
         if study.has_eligibility_criteria {
-            let participant_info: ParticipantInfo = ParticipantInfo::try_from_slice(&eligibility_proof)
+            let participant_info: EligibilityInfo = EligibilityInfo::try_from_slice(&eligibility_proof)
                 .map_err(|_| RecruSearchError::InvalidEligibilityProof)?;
             
-            let is_eligible = self.verify_participant_eligibility(&participant_info)?;
+            
+            let is_eligible = verify_participant_eligibility(&study.eligibility_criteria, &participant_info)?;
             require!(is_eligible, RecruSearchError::ParticipantNotEligible);
             
             msg!("Participant eligibility verified successfully");
@@ -140,38 +138,75 @@ impl<'info> MintConsentNFT<'info> {
         consent.eligibility_proof = eligibility_proof;
         consent.nft_mint = Some(self.asset.key());
 
-        // Update study enrollment count
+        // Extract study data before borrowing mutably
+        let study_id = study.study_id;
+        let study_title = study.title.clone();
+        let study_researcher = study.researcher;
+        let study_has_eligibility = study.has_eligibility_criteria;
         let study = &mut self.study;
         study.enrolled_count = study.enrolled_count.saturating_add(1);
-
-        // Create consent NFT metadata
-        let metadata_uri = "ipfs://bafkreibvcklkbj43f7ljb7ade2jcldybdxgb4vu7kdhbyedkslyq5g4sf4".to_string();
-        let consent_nft_name = format!("RecruSearch Consent #{}", study.study_id);
-        let consent_nft_symbol = "RSCONSENT";
-        let consent_nft_description = format!("Consent NFT for RecruSearch study #{} - This NFT represents the participant's consent to participate in this research study.", study.study_id);
         
-        msg!("Creating Consent NFT with symbol: {} and description: {}", consent_nft_symbol, consent_nft_description);
+        // Use simple static metadata URI for template image
+        let metadata_uri = CONSENT_NFT_TEMPLATE_IMAGE;
+        
+        msg!("Creating Consent NFT with MPL Core attributes");
         
         // Mint the consent NFT
-        CreateV2CpiBuilder::new(&self.mpl_core_program.to_account_info())
+        CreateV1CpiBuilder::new(&self.mpl_core_program.to_account_info())
             .asset(&self.asset.to_account_info())
             .collection(None)
-            .authority(None)
+            .authority(Some(&self.participant.to_account_info()))
             .payer(&self.participant.to_account_info())
             .owner(Some(&self.participant.to_account_info()))
             .update_authority(Some(&self.participant.to_account_info()))
             .system_program(&self.system_program.to_account_info())
-            .name(consent_nft_name)
-            .uri(metadata_uri)
+            .data_state(DataState::AccountState)
+            .name(format!("RecruSearch Consent #{}", study_id))
+            .uri(metadata_uri.to_string())
+            .plugins(vec![PluginAuthorityPair {
+                plugin: mpl_core::types::Plugin::Attributes(Attributes { 
+                    attribute_list: vec![
+                        Attribute { 
+                            key: "Study ID".to_string(), 
+                            value: study.study_id.to_string() 
+                        },
+                        Attribute { 
+                            key: "Study Title".to_string(), 
+                            value: study_title.clone()
+                        },
+                        Attribute { 
+                            key: "Consent Date".to_string(), 
+                            value: clock.unix_timestamp.to_string()
+                        },
+                        Attribute { 
+                            key: "Type".to_string(), 
+                            value: "Consent NFT".to_string() 
+                        },
+                        Attribute { 
+                            key: "Platform".to_string(), 
+                            value: "RecruSearch".to_string() 
+                        },
+                        Attribute { 
+                            key: "Researcher".to_string(), 
+                            value: study_researcher.to_string()
+                        },
+                        Attribute { 
+                            key: "Has Eligibility Criteria".to_string(), 
+                            value: study_has_eligibility.to_string()
+                        }
+                    ]
+                }), 
+                authority: None
+            }])
             .invoke()?;
 
         msg!("SUCCESS: Consent NFT minted for participant: {}", self.participant.key());
         msg!("Consent NFT mint: {}", self.asset.key());
-        msg!("Study ID: {}", study.study_id);
+        msg!("Study ID: {}", study_id);
 
         // Emit consent NFT minted event
         emit!(ConsentNFTMinted {
-            study_id: study.study_id,
+            study_id: study_id,
             participant: self.participant.key(),
             consent_nft_mint: self.asset.key(),
             timestamp: clock.unix_timestamp,
@@ -179,97 +214,10 @@ impl<'info> MintConsentNFT<'info> {
 
         Ok(())
     }
-
-    // Verifies participant meets study eligibility criteria
-    fn verify_participant_eligibility(&self, participant_info: &ParticipantInfo) -> Result<bool> {
-        let study = &self.study;
-        
-        if !study.has_eligibility_criteria {
-            return Ok(true);
-        }
-
-        let criteria: EligibilityCriteria = EligibilityCriteria::try_from_slice(&study.eligibility_criteria)
-            .map_err(|_| RecruSearchError::InvalidParameterValue)?;
-
-        // Check age requirements
-        if let Some(min_age) = criteria.min_age {
-            if participant_info.age < min_age {
-                msg!("Eligibility verification failed - age requirement not met");
-                return Ok(false);
-            }
-        }
-
-        if let Some(max_age) = criteria.max_age {
-            if participant_info.age > max_age {
-                msg!("Eligibility verification failed - age requirement not met");
-                return Ok(false);
-            }
-        }
-
-        // Check gender requirement
-        if let Some(required_gender) = &criteria.gender {
-            if participant_info.gender.to_lowercase() != required_gender.to_lowercase() {
-                msg!("Participant gender '{}' does not match required gender '{}'", 
-                     participant_info.gender, required_gender);
-                return Ok(false);
-            }
-        }
-
-        // Check location requirement
-        if let Some(required_location) = &criteria.location {
-            if participant_info.location.to_lowercase() != required_location.to_lowercase() {
-                msg!("Participant location '{}' does not match required location '{}'", 
-                     participant_info.location, required_location);
-                return Ok(false);
-            }
-        }
-
-        // Check education requirement
-        if let Some(required_education) = &criteria.education_level {
-            if participant_info.education_level.to_lowercase() != required_education.to_lowercase() {
-                msg!("Participant education '{}' does not match required education '{}'", 
-                     participant_info.education_level, required_education);
-                return Ok(false);
-            }
-        }
-
-        // Check employment requirement
-        if let Some(required_employment) = &criteria.employment_status {
-            if participant_info.employment_status.to_lowercase() != required_employment.to_lowercase() {
-                msg!("Participant employment '{}' does not match required employment '{}'", 
-                     participant_info.employment_status, required_employment);
-                return Ok(false);
-            }
-        }
-
-        // Check medical conditions exclusion
-        if let Some(excluded_conditions) = &criteria.medical_conditions {
-            for condition in excluded_conditions {
-                if participant_info.medical_conditions.iter().any(|c| c.to_lowercase() == condition.to_lowercase()) {
-                    msg!("Eligibility verification failed - medical criteria not met");
-                    return Ok(false);
-                }
-            }
-        }
-
-        // Check custom requirements
-        if let Some(custom_requirements) = &criteria.custom_requirements {
-            for requirement in custom_requirements {
-                if !participant_info.additional_info.as_ref()
-                    .map(|info| info.iter().any(|item| item.to_lowercase() == requirement.to_lowercase()))
-                    .unwrap_or(false) {
-                    msg!("Participant does not meet custom requirement: {}", requirement);
-                    return Ok(false);
-                }
-            }
-        }
-
-        Ok(true)
-    }
 }
 
 impl<'info> RevokeConsent<'info> {
-    // Revokes consent and burns NFT - prevents data submission
+    // Revokes consent and marks NFT as revoked - prevents data submission
     pub fn revoke_consent(&mut self) -> Result<()> {
         // Prevent revocation after data submission
         if let Some(_submission) = &self.submission {
@@ -277,17 +225,19 @@ impl<'info> RevokeConsent<'info> {
             return Err(RecruSearchError::AlreadySubmitted.into());
         }
 
+        let clock = Clock::get()?;
+
         // Mark consent as revoked
         let consent = &mut self.consent;
         consent.is_revoked = true;
-        consent.revocation_timestamp = Some(Clock::get()?.unix_timestamp);
+        consent.revocation_timestamp = Some(clock.unix_timestamp);
 
         // Burn the consent NFT
         BurnV1CpiBuilder::new(&self.mpl_core_program.to_account_info())
             .asset(&self.asset.to_account_info())
             .authority(Some(&self.participant.to_account_info()))
             .invoke()?;
-
+        
         msg!("SUCCESS: Consent revoked and NFT burned for participant: {}", self.participant.key());
         msg!("Burned NFT: {}", self.asset.key());
         
@@ -295,7 +245,7 @@ impl<'info> RevokeConsent<'info> {
         emit!(ConsentRevoked {
             study_id: self.study.study_id,
             participant: self.participant.key(),
-            timestamp: Clock::get()?.unix_timestamp,
+            timestamp: clock.unix_timestamp,
         });
         
         Ok(())

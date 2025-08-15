@@ -4,10 +4,9 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface},
     token::{transfer_checked, TransferChecked},
 };
-use crate::state::{StudyAccount, StudyStatus, SubmissionAccount, ConsentAccount, RewardVault, RecruSearchError};
-use crate::state::events::{RewardVaultCreated,RewardDistributed};
+use crate::state::*;
 
-// Reward distribution - transfers tokens to participants for study completion
+// transfers tokens to participants for study completion
 
 #[derive(Accounts)]
 pub struct DistributeReward<'info> {
@@ -249,7 +248,6 @@ impl<'info> DistributeReward<'info> {
 
         let reward_amount = study.reward_amount_per_participant;
         
-        // Create signer seeds for vault authority
         let (prefix, study_bytes, bump) = vault_signer_seeds(&study.key(), vault.bump);
         let signer_seeds: &[&[u8]] = &[&prefix, &study_bytes, &bump];
         let signer_seeds = &[signer_seeds];
@@ -271,15 +269,12 @@ impl<'info> DistributeReward<'info> {
             self.reward_mint.decimals,
         )?;
 
-        // Update distribution tracking
         vault.total_distributed = vault.total_distributed.saturating_add(reward_amount);
         submission.reward_distributed = true;
 
-        // Update study's total rewards distributed
         let study = &mut self.study;
         study.total_rewards_distributed = study.total_rewards_distributed.saturating_add(reward_amount);
 
-        // Log distribution details
         msg!("Reward distributed successfully from vault");
         msg!("Amount: {} tokens", reward_amount);
         msg!("Participant: {}", self.participant.key());

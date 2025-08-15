@@ -1,9 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::state::{StudyAccount, StudyStatus, RecruSearchError};
-use crate::state::constants::{MAX_TITLE_LENGTH, MAX_DESCRIPTION_LENGTH, MAX_PARTICIPANTS_PER_STUDY, MIN_ENROLLMENT_WINDOW, MIN_STUDY_DURATION, MAX_STUDY_DURATION};
-use crate::state::events::{StudyCreated, StudyPublished, StudyClosed};
-
-// Study creation - creates a new research study 
+use crate::state::*;
 
 #[derive(Accounts)]
 #[instruction(
@@ -58,7 +54,7 @@ pub struct PublishStudy<'info> {
     pub researcher: Signer<'info>,
 }
 
-// Study closure - permanently closes a study to new enrollments
+// permanently closes a study to new enrollments
 
 #[derive(Accounts)]
 pub struct CloseStudy<'info> {

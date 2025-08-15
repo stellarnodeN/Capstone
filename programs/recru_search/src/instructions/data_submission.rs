@@ -1,14 +1,11 @@
 use anchor_lang::prelude::*;
 use mpl_core::{
     ID as MPL_CORE_ID,
-    instructions::CreateV2CpiBuilder,
+    instructions::CreateV1CpiBuilder,
+    types::{Attribute, Attributes, DataState, PluginAuthorityPair},
 };
-use crate::state::{StudyAccount, StudyStatus, SubmissionAccount, ConsentAccount, RecruSearchError};
-use crate::state::constants::{
-    MIN_IPFS_CID_LENGTH, MAX_IPFS_CID_LENGTH, IPFS_CID_V0_PREFIX, IPFS_CID_V1_PREFIX,
-    DEFAULT_COMPLETION_NFT_METADATA_URI, COMPLETION_NFT_SYMBOL
-};
-use crate::state::events::{DataSubmitted, CompletionNFTMinted};
+
+use crate::state::*;
 
 // Data submission - allows participants to submit encrypted research data
 
@@ -84,11 +81,11 @@ pub struct MintCompletionNFT<'info> {
     )]
     pub submission: Account<'info, SubmissionAccount>,
 
-    ///  This is the asset account that will be used to mint the completion NFT
+    /// CHECK: This is the asset account that will be used to mint the completion NFT
     #[account(mut)]
-    pub asset: Signer<'info>,
+    pub asset: UncheckedAccount<'info>,
 
-    // Participant receiving completion NFT
+
     #[account(mut)]
     pub participant: Signer<'info>,
     
@@ -110,13 +107,9 @@ impl<'info> SubmitData<'info> {
         let study = &self.study;
         let clock = Clock::get()?;
 
-        // Validate IPFS CID format and length
+        // Basic IPFS CID validation (length only)
         require!(
-            ipfs_cid.len() >= MIN_IPFS_CID_LENGTH && ipfs_cid.len() <= MAX_IPFS_CID_LENGTH,
-            RecruSearchError::InvalidIPFSCID
-        );
-        require!(
-            ipfs_cid.starts_with(IPFS_CID_V0_PREFIX) || ipfs_cid.starts_with(IPFS_CID_V1_PREFIX),
+            ipfs_cid.len() >= 10 && ipfs_cid.len() <= 100,
             RecruSearchError::InvalidIPFSCID
         );
 
@@ -161,45 +154,85 @@ impl<'info> MintCompletionNFT<'info> {
     // Mints completion NFT as reward for study participation
     pub fn mint_completion_nft(&mut self) -> Result<()> {
         let study = &self.study;
-        let submission = &mut self.submission;
-
-        // Create completion NFT metadata
-        let metadata_uri = DEFAULT_COMPLETION_NFT_METADATA_URI.to_string();
-        let completion_nft_name = format!("RecruSearch Completion #{}", study.study_id);
-        let completion_nft_symbol = COMPLETION_NFT_SYMBOL;
-        let completion_nft_description = format!("Completion NFT for RecruSearch study #{} - This NFT represents successful completion of the research study.", study.study_id);
         
-        msg!("Creating Completion NFT with symbol: {} and description: {}", completion_nft_symbol, completion_nft_description);
+        // Extract submission data before mutable borrow
+        let submission_timestamp = self.submission.submission_timestamp;
         
-        // Mint the completion NFT
-        CreateV2CpiBuilder::new(&self.mpl_core_program.to_account_info())
+        // Use simple static metadata URI for template image
+        let metadata_uri = COMPLETION_NFT_TEMPLATE_IMAGE.to_string();
+        
+        msg!("Creating Completion NFT with MPL Core attributes");
+        
+        // Mint the completion NFT with MPL Core attributes
+        CreateV1CpiBuilder::new(&self.mpl_core_program.to_account_info())
             .asset(&self.asset.to_account_info())
             .collection(None)
-            .authority(None)
+            .authority(Some(&self.participant.to_account_info()))
             .payer(&self.participant.to_account_info())
             .owner(Some(&self.participant.to_account_info()))
             .update_authority(Some(&self.participant.to_account_info()))
             .system_program(&self.system_program.to_account_info())
-            .name(completion_nft_name)
+            .data_state(DataState::AccountState)
+            .name(format!("RecruSearch Completion #{}", study.study_id))
             .uri(metadata_uri)
+            .plugins(vec![PluginAuthorityPair {
+                plugin: mpl_core::types::Plugin::Attributes(Attributes { 
+                    attribute_list: vec![
+                        Attribute { 
+                            key: "Study ID".to_string(), 
+                            value: study.study_id.to_string() 
+                        },
+                        Attribute { 
+                            key: "Study Title".to_string(), 
+                            value: study.title.clone()
+                        },
+                        Attribute { 
+                            key: "Completion Date".to_string(), 
+                            value: Clock::get()?.unix_timestamp.to_string()
+                        },
+                        Attribute { 
+                            key: "Type".to_string(), 
+                            value: "Completion NFT".to_string() 
+                        },
+                        Attribute { 
+                            key: "Platform".to_string(), 
+                            value: "RecruSearch".to_string() 
+                        },
+                        Attribute { 
+                            key: "Researcher".to_string(), 
+                            value: study.researcher.to_string()
+                        },
+                        Attribute { 
+                            key: "Submission Timestamp".to_string(), 
+                            value: submission_timestamp.to_string()
+                        },
+                        Attribute { 
+                            key: "Achievement".to_string(), 
+                            value: "Research Participant".to_string()
+                        }
+                    ]
+                }), 
+                authority: None
+            }])
             .invoke()?;
 
         // Update submission with NFT mint
+        let submission = &mut self.submission;
         submission.completion_nft_mint = Some(self.asset.key());
 
-        // Update study completion count
+        let study_id = study.study_id;
         let study = &mut self.study;
         study.completed_count = study.completed_count.saturating_add(1);
 
-        // Log completion details
+       
         msg!("SUCCESS: Completion NFT minted for participant: {}", self.participant.key());
         msg!("Completion NFT mint: {}", self.asset.key());
-        msg!("Study ID: {}", study.study_id);
-        msg!("Submission timestamp: {}", submission.submission_timestamp);
+        msg!("Study ID: {}", study_id);
+        msg!("Submission timestamp: {}", submission_timestamp);
 
         // Emit completion NFT minted event
         emit!(CompletionNFTMinted {
-            study_id: study.study_id,
+            study_id: study_id,
             participant: self.participant.key(),
             completion_nft_mint: self.asset.key(),
             timestamp: Clock::get()?.unix_timestamp,

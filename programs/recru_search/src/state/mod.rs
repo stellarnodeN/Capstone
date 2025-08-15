@@ -3,11 +3,12 @@
 pub mod accounts;
 pub mod constants;
 pub mod errors;
-pub mod events;      
+pub mod events;
 
 // Re-export all items for convenient access
 pub use accounts::*;
 pub use constants::*;
+pub use events::*;
 
 // Export account structures for program instructions
 pub use accounts::{
@@ -22,17 +23,6 @@ pub use accounts::{
 
 // Export constants for validation and configuration
 pub use constants::{
-    ADMIN_SEED,
-    STUDY_SEED,
-    CONSENT_SEED,
-    SUBMISSION_SEED,
-    VAULT_SEED,
-    COMPLETION_SEED,
-    REWARD_SEED,
-    REWARD_VAULT_SEED,
-    VAULT_TOKEN_SEED,
-    SURVEY_SCHEMA_SEED,
-    DATA_STATS_SEED,
     MAX_TITLE_LENGTH,
     MAX_DESCRIPTION_LENGTH,
     MAX_PARTICIPANTS_PER_STUDY,
@@ -40,6 +30,10 @@ pub use constants::{
     MAX_PROTOCOL_FEE_BPS,
     MIN_STUDY_DURATION,
     MAX_STUDY_DURATION,
+    CONSENT_NFT_TEMPLATE_IMAGE,
+    COMPLETION_NFT_TEMPLATE_IMAGE,
+    CONSENT_NFT_SYMBOL,
+    COMPLETION_NFT_SYMBOL,
 };
 
 // Export error types for instruction validation

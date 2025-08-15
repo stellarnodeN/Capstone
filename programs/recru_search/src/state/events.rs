@@ -80,9 +80,6 @@ pub struct RewardDistributed {
 pub struct SurveySchemaCreated {
     pub study_id: u64,
     pub researcher: Pubkey,
-    pub schema_version: u32,
-    pub question_count: u32,
-    pub estimated_duration: u32,
 }
 
 //  track study completion rewards

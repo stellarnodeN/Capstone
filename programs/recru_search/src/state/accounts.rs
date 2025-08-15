@@ -45,7 +45,7 @@ pub struct StudyAccount {
     pub created_at: i64,
 
     pub has_eligibility_criteria: bool,
-    #[max_len(1000)]
+    #[max_len(500)]
     pub eligibility_criteria: Vec<u8>,
     pub bump: u8,
 }
@@ -56,7 +56,7 @@ pub struct StudyAccount {
 pub struct ConsentAccount {
     pub study: Pubkey,
     pub participant: Pubkey,
-    #[max_len(1000)]
+    #[max_len(500)]
     pub eligibility_proof: Vec<u8>,
     pub timestamp: i64,
     pub is_revoked: bool,
@@ -92,28 +92,20 @@ pub struct RewardVault {
     pub bump: u8,
 }
 
-// Survey schema account - defines data collection structure and metadata
+// Survey schema account - defines data collection structure
 #[account]
 #[derive(InitSpace)]
 pub struct SurveySchema {
     pub study: Pubkey,
     #[max_len(100)]
     pub title: String,
-    pub schema_version: u32,
-    pub question_count: u32,
-    pub estimated_duration_minutes: u32,
     #[max_len(100)]
     pub schema_ipfs_cid: String,
     pub requires_encryption: bool,
-    pub supports_file_uploads: bool,
-    pub total_responses: u32,
-    pub average_completion_time: u32,
-    #[max_len(100)]
-    pub export_ipfs_cid: String,
     pub bump: u8,
 }
 
-// Data collection statistics account - tracks survey response metrics
+// Data collection statistics account - tracks basic response metrics
 #[account]
 #[derive(InitSpace)]
 pub struct DataCollectionStats {
@@ -121,13 +113,5 @@ pub struct DataCollectionStats {
     pub researcher: Pubkey,
     pub total_responses: u32,
     pub complete_responses: u32,
-    pub validated_responses: u32,
-    pub encrypted_responses: u32,
-    pub total_files_uploaded: u32,
-    pub total_file_size_mb: u32,
-    pub average_completion_time_seconds: u32,
-    pub first_response_timestamp: i64,
-    pub last_response_timestamp: i64,
-    pub last_updated: i64,
     pub bump: u8,
 }

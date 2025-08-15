@@ -12,3 +12,4 @@ test-ledger/
 .DS_Store
 *.md
 *-wallet.json
+app/
