@@ -8,7 +8,7 @@ use crate::state::{StudyAccount, StudyStatus, ConsentAccount, SubmissionAccount,
 use crate::instructions::eligibility_criteria::{EligibilityInfo, verify_participant_eligibility};
 use crate::state::events::{ConsentNFTMinted,ConsentRevoked};
 
-// Consent NFT minting - allows participants to enroll in studies
+// Consent NFT - allows participants to enroll in studies
 
 #[derive(Accounts)]
 #[instruction(study_id: u64)]
@@ -74,7 +74,7 @@ pub struct RevokeConsent<'info> {
     )]
     pub study: Account<'info, StudyAccount>,
 
-    /// CHECK: This is the asset account that will be used to burn the NFT
+    /// CHECK: asset account to burn the NFT
     #[account(mut)]
     pub asset: UncheckedAccount<'info>,
 
@@ -95,7 +95,7 @@ pub struct RevokeConsent<'info> {
     )]
     pub submission: Option<Account<'info, SubmissionAccount>>,
 
-    /// CHECK: This is the MPL Core program ID which is verified by the address constraint
+    /// CHECK: MPL Core program ID which is verified by the address constraint
     #[account(address = MPL_CORE_ID)]
     pub mpl_core_program: UncheckedAccount<'info>,
 }
@@ -114,7 +114,7 @@ impl<'info> MintConsentNFT<'info> {
             clock.unix_timestamp <= study.enrollment_end,
             RecruSearchError::InvalidEnrollmentPeriod
         );
-         // Verify eligibility if criteria are set
+         // Verify eligibility criteria are set
         if study.has_eligibility_criteria {
             let participant_info: EligibilityInfo = EligibilityInfo::try_from_slice(&eligibility_proof)
                 .map_err(|_| RecruSearchError::InvalidEligibilityProof)?;
@@ -146,7 +146,6 @@ impl<'info> MintConsentNFT<'info> {
         let study = &mut self.study;
         study.enrolled_count = study.enrolled_count.saturating_add(1);
         
-        // Use simple static metadata URI for template image
         let metadata_uri = CONSENT_NFT_TEMPLATE_IMAGE;
         
         msg!("Creating Consent NFT with MPL Core attributes");

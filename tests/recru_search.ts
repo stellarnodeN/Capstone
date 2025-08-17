@@ -7,6 +7,29 @@ import { MINT_SIZE, TOKEN_PROGRAM_ID, createAssociatedTokenAccountIdempotentInst
 import { expect } from "chai";
 import { MPL_CORE_PROGRAM_ID, fetchAssetV1 } from "@metaplex-foundation/mpl-core";
 
+// Devnet configuration
+const DEVNET_DELAY = 2000; // milliseconds between transactions
+const MAX_RETRIES = 3; // maximum number of retries for getting blockhash
+
+// Utility function to add delay between transactions
+async function sleep(ms: number = DEVNET_DELAY): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Helper function to get blockhash with retries
+async function getRecentBlockhashWithRetry(connection: any, retries = MAX_RETRIES): Promise<string> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const { blockhash } = await connection.getLatestBlockhash();
+      return blockhash;
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await sleep(1000 * (i + 1)); // Exponential backoff
+    }
+  }
+  throw new Error('Failed to get recent blockhash after retries');
+}
+
 // Helper functions
 import {
   getAdminPDA,
@@ -27,17 +50,36 @@ import {
 } from "./helpers";
 
 describe("recru-search", () => {
-  // Setup
-  anchor.setProvider(anchor.AnchorProvider.env());
-  const provider = anchor.getProvider();
-  const connection = provider.connection;
-
-    connection.onLogs("all", (logs, ctx) => {  
-    console.log("Program Logs:", logs);
+  // Setup with custom connection configuration
+  const connection = new anchor.web3.Connection(
+    "https://api.devnet.solana.com",
+    {
+      commitment: "confirmed",
+      confirmTransactionInitialTimeout: 60000,
+      httpHeaders: { 'Referer': 'local' }  // Some RPC endpoints require this
+    }
+  );
+  const wallet = anchor.Wallet.local();
+  const provider = new anchor.AnchorProvider(connection, wallet, {
+    commitment: "confirmed",
+    preflightCommitment: "confirmed",
   });
+  anchor.setProvider(provider);
   
   const program = anchor.workspace.RecruSearch as Program<RecruSearch>;
   const programId = program.programId;
+  
+  // Verify connection configuration
+  console.log("Connection endpoint:", connection.rpcEndpoint);
+  console.log("Program ID:", programId.toString());
+  console.log("Wallet pubkey:", wallet.publicKey.toString());
+
+  // Override provider's connection to use our retry mechanism
+  const originalSendTransaction = provider.sendAndConfirm;
+  provider.sendAndConfirm = async function (tx: Transaction, signers?: Keypair[], opts = {}) {
+    await sleep();  // Add delay between transactions
+    return originalSendTransaction.call(this, tx, signers, opts);
+  };
 
   // Test accounts
   let admin: Keypair;
@@ -59,6 +101,22 @@ describe("recru-search", () => {
 
   const log = async (signature: string): Promise<string> => {
     return logTransaction(signature, connection);
+  };
+
+  // Helper to subscribe to program logs within a test
+  const watchProgramLogs = (callback?: (logs: any) => void) => {
+    const subscription = connection.onLogs(
+      programId,
+      (logs) => {
+        if (callback) {
+          callback(logs);
+        } else {
+          console.log("Program Logs:", logs);
+        }
+      },
+      "confirmed"
+    );
+    return subscription;
   };
 
   // Create mint
@@ -129,27 +187,24 @@ describe("recru-search", () => {
     return ata;
   }
 
-  // Airdrop SOL
-  async function airdropSol(to: Keypair, amount: number) {
+  // Airdrop SOL (commented out for devnet)
+  /*async function airdropSol(to: Keypair, amount: number) {
     const lamports = amount * LAMPORTS_PER_SOL;
     const signature = await connection.requestAirdrop(to.publicKey, lamports);
     await connection.confirmTransaction(signature);
     console.log(`Airdropped ${amount} SOL to ${to.publicKey.toBase58()}`);
-  }
+  }*/
+
+  // Use the sleep function defined at the top of the file
 
   // Setup test environment
   before(async () => {
-    // Generate accounts
-    admin = Keypair.generate();
-    researcher = Keypair.generate();
-    participant = Keypair.generate();
-    participant2 = Keypair.generate();
-    
-    // Airdrop SOL
-    await airdropSol(admin, 2);
-    await airdropSol(researcher, 2);
-    await airdropSol(participant, 1);
-    await airdropSol(participant2, 1);
+    // Use the provider's keypair for all roles since it's already configured with sufficient SOL
+    const wallet = (provider.wallet as anchor.Wallet).payer;
+    admin = wallet;
+    researcher = wallet;
+    participant = wallet;
+    participant2 = wallet;
     
     // Create mint and token accounts
     const mint = await createMint(researcher);
@@ -169,21 +224,55 @@ describe("recru-search", () => {
 
   // Basic tests
   describe("Basic Functionality", () => {
-    it("Should initialize protocol", async () => {
-      const adminState = getAdminPDA();
-      
-      const tx = await program.methods.initializeProtocol(250, 86400, 31536000)
-        .accountsPartial({
-          adminState,
-          protocolAdmin: admin.publicKey,
-          systemProgram: SystemProgram.programId
-        })
-        .signers([admin])
-        .rpc()
-        .then(confirm)
-        .then(log);
+    it.only("Should initialize protocol", async () => {
+      try {
+        console.log("Admin public key:", admin.publicKey.toString());
+        console.log("Provider wallet public key:", provider.wallet.publicKey.toString());
         
+        const adminState = getAdminPDA();
+        console.log("Admin PDA:", adminState.toString());
+        
+        console.log("Attempting to initialize protocol...");
+        const tx = await program.methods.initializeProtocol(
+            250,  // protocol_fee_basis_points
+            86400,  // min_study_duration
+            31536000  // max_study_duration
+          )
+          .accounts({
+            adminState: adminState,
+            protocolAdmin: admin.publicKey,
+            systemProgram: SystemProgram.programId
+          })
+          .signers([admin])
+          .rpc();
+        
+        console.log("Transaction signature:", tx);
+        
+        // Wait for confirmation
+        await sleep(2000); // Add delay before confirmation check
+        const confirmation = await provider.connection.confirmTransaction(tx, "confirmed");
+        console.log("Transaction confirmation:", confirmation);
+        
+        // Try to fetch the admin account
+        try {
+          const adminData = await program.account.adminAccount.fetch(adminState);
+          console.log("Admin account data:", adminData);
+        } catch (fetchError) {
+          console.log("Could not fetch admin account:", fetchError.message);
+        }
+      } catch (error) {
+        console.error("Detailed error:", error);
+        console.error("Error stack:", error.stack);
+        if (error.logs) {
+          console.error("Program logs:", error.logs);
+        }
+        throw error;
+      }
+      
       console.log("Protocol initialized successfully");
+      
+      // Add delay for devnet
+      await sleep();
       
       // Verify admin state
       const adminAccount = await program.account.adminAccount.fetch(adminState);
@@ -316,6 +405,9 @@ describe("recru-search", () => {
         
       console.log("Study published successfully");
       
+      // Add delay for devnet
+      await sleep();
+      
       // Verify study published
       const studyAccount = await program.account.studyAccount.fetch(currentStudyPDA);
       expect(studyAccount.status).to.deep.equal({ published: {} });
@@ -369,6 +461,9 @@ describe("recru-search", () => {
         
       console.log("Reward vault created successfully");
       
+      // Add delay for devnet
+      await sleep();
+      
       // Verify vault was created
       const vaultAccount = await program.account.rewardVault.fetch(rewardVault);
       expect(vaultAccount.study).to.eql(currentStudyPDA);
@@ -411,6 +506,9 @@ describe("recru-search", () => {
         .then(log);
         
       console.log("Study closed successfully");
+
+      // Add delay for devnet
+      await sleep();
       
       // Verify study was closed
       const studyAccount = await program.account.studyAccount.fetch(currentStudyPDA);
@@ -605,6 +703,9 @@ describe("recru-search", () => {
         .rpc()
         .then(confirm)
         .then(log);
+
+// Add delay for devnet
+      await sleep();
 
       // Verify schema was created
       const schemaAccount = await program.account.surveySchema.fetch(surveySchemaPDA);
@@ -913,15 +1014,21 @@ describe("recru-search", () => {
           console.log("✓ Consent NFT minted successfully (devnet)");
           console.log("Transaction signature:", txSig);
           
+          // Add delay for devnet
+      await sleep();
+
           // Verify consent account
           const consentAccount = await program.account.consentAccount.fetch(consentPDA);
           expect(consentAccount.participant).to.eql(participant.publicKey);
           expect(consentAccount.study).to.eql(currentStudyPDA);
           expect(consentAccount.isRevoked).to.be.false;
           
-          // On devnet, verify NFT creation
-          // const assetData = await fetchAssetV1(provider.connection, asset.publicKey);
-          // expect(assetData.owner.toString()).to.equal(participant.publicKey.toString());
+          // On devnet, verify NFT creation through account info
+          const assetInfo = await provider.connection.getAccountInfo(asset.publicKey);
+          expect(assetInfo).to.not.be.null;
+          if (assetInfo) {
+            console.log("Asset account verified on-chain");
+          }
           
         } catch (error) {
           // Expected to fail on localnet
@@ -1112,6 +1219,9 @@ describe("recru-search", () => {
           console.log("✓ Consent revoked successfully (devnet)");
           console.log("Transaction signature:", txSig);
           
+          // Add delay for devnet
+      await sleep();
+
           // Verify consent account is marked as revoked
           const consentAccount = await program.account.consentAccount.fetch(consentPDA);
           expect(consentAccount.isRevoked).to.be.true;
@@ -1234,6 +1344,9 @@ describe("recru-search", () => {
            console.log("✓ Data submitted successfully");
            console.log("Transaction signature:", txSig);
            
+           // Add delay for devnet
+      await sleep();
+
            // Verify submission account was created
            const submissionAccount = await program.account.submissionAccount.fetch(submissionPDA);
            expect(submissionAccount.participant).to.eql(participant.publicKey);

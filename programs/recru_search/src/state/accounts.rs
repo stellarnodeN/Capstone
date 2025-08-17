@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-// Study status enum - defines the lifecycle states of research studies
+// Study status enum 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, InitSpace, Debug)]
 pub enum StudyStatus {
     Draft,
@@ -9,7 +9,7 @@ pub enum StudyStatus {
     Closed,
 }
 
-// Global admin account - stores RecruSearch config
+// Global admin account 
 #[account]
 #[derive(InitSpace)]
 pub struct AdminAccount {
@@ -23,7 +23,7 @@ pub struct AdminAccount {
     pub bump: u8,
 }
 
-// Study account - stores research study config and state
+// Study account 
 #[account]
 #[derive(InitSpace)]
 pub struct StudyAccount {
@@ -50,7 +50,7 @@ pub struct StudyAccount {
     pub bump: u8,
 }
 
-// Consent account - tracks participant enrollment and consent status
+// Consent account 
 #[account]
 #[derive(InitSpace)]
 pub struct ConsentAccount {
@@ -65,7 +65,7 @@ pub struct ConsentAccount {
     pub bump: u8,
 }
 
-// Submission account - stores encrypted data submission metadata
+// Submission account 
 #[account]
 #[derive(InitSpace)]
 pub struct SubmissionAccount {
@@ -81,7 +81,7 @@ pub struct SubmissionAccount {
     pub bump: u8,
 }
 
-// Reward vault account - manages token rewards for study participants
+// Reward vault account 
 #[account]
 #[derive(InitSpace)]
 pub struct RewardVault {
@@ -92,7 +92,7 @@ pub struct RewardVault {
     pub bump: u8,
 }
 
-// Survey schema account - defines data collection structure
+// Survey schema account 
 #[account]
 #[derive(InitSpace)]
 pub struct SurveySchema {
@@ -105,7 +105,7 @@ pub struct SurveySchema {
     pub bump: u8,
 }
 
-// Data collection statistics account - tracks basic response metrics
+// Data collection statistics account
 #[account]
 #[derive(InitSpace)]
 pub struct DataCollectionStats {

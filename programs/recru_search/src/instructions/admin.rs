@@ -3,7 +3,6 @@ use crate::state::*;
 
 #[derive(Accounts)]
 pub struct InitializeProtocol<'info> {
-    // Global admin state account
     #[account(
         init,
         payer = protocol_admin,
@@ -68,8 +67,7 @@ impl<'info> InitializeProtocol<'info> {
             max_study_duration: max_duration,
         })
     }
-
-    // Initializes the admin state account with protocol config
+    
     fn initialize_admin_state(
         &mut self,
         config: ProtocolConfig,

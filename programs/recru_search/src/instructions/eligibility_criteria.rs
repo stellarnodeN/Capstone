@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use crate::state::{StudyAccount, RecruSearchError, MAX_ELIGIBILITY_CRITERIA_SIZE, MIN_AGE_LIMIT, MAX_AGE_LIMIT};
 
-// Simplified eligibility structure - single struct for both requirements and participant info
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct EligibilityInfo {
     pub min_age: Option<u8>,        
@@ -14,7 +13,7 @@ pub struct EligibilityInfo {
 #[derive(Accounts)]
 #[instruction(study_id: u64)]
 pub struct SetEligibilityCriteria<'info> {
-    // Study account to set eligibility criteria for
+    // Study account to set eligibility criteria 
     #[account(
         mut,
         seeds = [b"study", study.researcher.as_ref(), study_id.to_le_bytes().as_ref()],
@@ -23,13 +22,11 @@ pub struct SetEligibilityCriteria<'info> {
     )]
     pub study: Account<'info, StudyAccount>,
 
-    // Researcher setting the criteria
     #[account(mut)]
     pub researcher: Signer<'info>,
 }
 
 impl<'info> SetEligibilityCriteria<'info> {
-    // Sets eligibility criteria for a study
     pub fn set_eligibility_criteria(
         &mut self,
         study_id: u64,
@@ -41,11 +38,9 @@ impl<'info> SetEligibilityCriteria<'info> {
             RecruSearchError::InvalidParameterValue
         );
 
-        // Validate criteria format by parsing it
         let criteria: EligibilityInfo = EligibilityInfo::try_from_slice(&criteria_bytes)
             .map_err(|_| RecruSearchError::InvalidParameterValue)?;
 
-        // Validate age ranges if specified
         if let Some(min_age) = criteria.min_age {
             require!(min_age >= MIN_AGE_LIMIT, RecruSearchError::InvalidParameterValue);
         }
@@ -140,6 +135,3 @@ fn verify_eligibility_against_criteria(
     msg!("Participant meets all eligibility criteria");
     Ok(true)
 }
-
-
-

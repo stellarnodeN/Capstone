@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum RecruSearchError {
-    // Study validation errors - validate study parameters and constraints
+    // Study validation errors 
     #[msg("Study title exceeds maximum length of 100 characters")]
     TitleTooLong = 6000,
     #[msg("Study description exceeds maximum length of 500 characters")]
@@ -22,7 +22,7 @@ pub enum RecruSearchError {
     #[msg("Invalid parameter value provided")]
     InvalidParameterValue = 6008,
 
-    // Access control errors - validate user permissions and authorization
+    // Access control errors 
     #[msg("Only the study researcher can perform this action")]
     UnauthorizedResearcher = 6100,
     #[msg("Only the enrolled participant can perform this action")]
@@ -30,7 +30,7 @@ pub enum RecruSearchError {
     #[msg("Insufficient permissions to perform this action")]
     UnauthorizedAccess = 6102,
 
-    // State transition errors - validate study and consent state changes
+    // State transition errors 
     #[msg("Study is not in the required state for this operation")]
     InvalidStudyState = 6200,
     #[msg("Invalid state transition for the study")]
@@ -44,7 +44,7 @@ pub enum RecruSearchError {
     #[msg("Consent is not active or has been revoked")]
     ConsentNotActive = 6205,
 
-    // Data validation errors - validate input data and IPFS content
+    // Data validation errors
     #[msg("Data format is invalid or corrupted")]
     InvalidDataFormat = 6300,
     #[msg("IPFS CID format is invalid or unsupported")]
@@ -56,13 +56,13 @@ pub enum RecruSearchError {
     #[msg("Study has no eligibility criteria set for verification")]
     NoEligibilityCriteria = 6304,
 
-    // Participant action errors - validate participant enrollment and submission
+    // Participant action errors 
     #[msg("Consent has been revoked and cannot be used")]
     ConsentRevoked = 6400,
     #[msg("Data has already been submitted for this study")]
     AlreadySubmitted = 6401,
 
-    // Token and reward errors - validate token transfers and reward distribution
+    // Token and reward errors
     #[msg("Insufficient token balance for this operation")]
     InsufficientFunds = 6500,
     #[msg("Reward has already been claimed by this participant")]
@@ -74,7 +74,7 @@ pub enum RecruSearchError {
     #[msg("Protocol fee exceeds maximum allowed rate of 10%")]
     ExcessiveProtocolFee = 6504,
 
-    // Processing errors - validate data processing and arithmetic operations
+    // Processing errors 
     #[msg("Data anonymization process failed")]
     AnonymizationFailed = 6600,
     #[msg("Arithmetic overflow or underflow occurred")]

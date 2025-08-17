@@ -7,7 +7,7 @@ pub const SEED: &str = "anchor";
 pub const MAX_TITLE_LENGTH: usize = 100;
 pub const MAX_DESCRIPTION_LENGTH: usize = 500;
 
-// Study duration constraints (simplified)
+// Study duration constraints 
 #[constant]
 pub const MIN_STUDY_DURATION: i64 = 86400; // 1 day
 #[constant]
@@ -33,4 +33,4 @@ pub const COMPLETION_NFT_TEMPLATE_IMAGE: &str = "ipfs://bafkreiaich32x7g4cajoven
 // Basic eligibility constraints
 pub const MIN_AGE_LIMIT: u8 = 18;
 pub const MAX_AGE_LIMIT: u8 = 100;
-pub const MAX_ELIGIBILITY_CRITERIA_SIZE: usize = 500; // Reduced from 1000
+pub const MAX_ELIGIBILITY_CRITERIA_SIZE: usize = 500; 

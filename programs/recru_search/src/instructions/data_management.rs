@@ -129,8 +129,6 @@ impl<'info> FinalizeSurveySchema<'info> {
     }
 }
 
-// Simple data export - generates basic export metadata
-
 #[derive(Accounts)]
 #[instruction(study_id: u64)]
 pub struct ExportSurveyData<'info> {
@@ -142,21 +140,18 @@ pub struct ExportSurveyData<'info> {
     )]
     pub study: Account<'info, StudyAccount>,
 
-    // Survey schema for metadata
     #[account(
         seeds = [b"survey", study.key().as_ref()],
         bump = survey_schema.bump
     )]
     pub survey_schema: Account<'info, SurveySchema>,
 
-    // Data collection statistics
     #[account(
         seeds = [b"data_stats", study.key().as_ref()],
         bump = data_stats.bump
     )]
     pub data_stats: Account<'info, DataCollectionStats>,
 
-    // Researcher requesting export
     #[account(mut)]
     pub researcher: Signer<'info>,
 }
@@ -169,22 +164,17 @@ impl<'info> ExportSurveyData<'info> {
     ) -> Result<ExportManifest> {
         let study = &self.study;
         let stats = &self.data_stats;
-
-       
+        
         require!(
             matches!(study.status, StudyStatus::Active | StudyStatus::Closed),
             RecruSearchError::InvalidStatusTransition
         );
-
-     
         let export_manifest = ExportManifest {
             study_id,
             study_title: study.title.clone(),
             total_responses: stats.total_responses,
             complete_responses: stats.complete_responses,
         };
-
-      
         msg!(
             "Data export initiated for study {}: '{}' ({} responses)",
             study_id,

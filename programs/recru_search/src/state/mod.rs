@@ -1,16 +1,12 @@
-// State module - exports all account structures, constants, errors, and events
-
 pub mod accounts;
 pub mod constants;
 pub mod errors;
 pub mod events;
 
-// Re-export all items for convenient access
 pub use accounts::*;
 pub use constants::*;
 pub use events::*;
 
-// Export account structures for program instructions
 pub use accounts::{
     AdminAccount,
     StudyAccount,
@@ -21,7 +17,6 @@ pub use accounts::{
     DataCollectionStats,
 };
 
-// Export constants for validation and configuration
 pub use constants::{
     MAX_TITLE_LENGTH,
     MAX_DESCRIPTION_LENGTH,
@@ -36,5 +31,4 @@ pub use constants::{
     COMPLETION_NFT_SYMBOL,
 };
 
-// Export error types for instruction validation
 pub use errors::RecruSearchError;

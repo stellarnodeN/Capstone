@@ -1,5 +1,5 @@
 [toolchain]
-package_manager = "yarn"
+package_manager = "pnpm"
 
 [features]
 resolution = true
@@ -13,24 +13,12 @@ mpl_core = "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"
 recru_search = "HL4vrf5EV4eeaWyDLdzRgdjxxLiPfxiBvpWqjtKBPBNR"
 mpl_core = "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"
 
-[test]
-startup_wait = 5000
-log_level = "debug"
-
-[test.validator]
-url = "http://localhost:8899"
-log_level = "debug"
-enable_logs = true
-
-[test.validator.bpf_programs]
-mpl_core = "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"
-
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
-wallet = "~/.config/solana/id.json"
+cluster = "devnet"
+wallet = "./programs/recru_search/Turbin3-wallet.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json --timeout 60000 --reporter spec tests/**/*.ts"
+test = "pnpm run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

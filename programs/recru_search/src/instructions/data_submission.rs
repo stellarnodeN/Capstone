@@ -53,7 +53,7 @@ pub struct SubmitData<'info> {
     pub system_program: Program<'info, System>,
 }
 
-// Completion NFT minting - rewards participants for study completion
+// Completion NFT - rewards participants for study completion
 
 #[derive(Accounts)]
 pub struct MintCompletionNFT<'info> {
@@ -81,7 +81,7 @@ pub struct MintCompletionNFT<'info> {
     )]
     pub submission: Account<'info, SubmissionAccount>,
 
-    /// CHECK: This is the asset account that will be used to mint the completion NFT
+    /// CHECK: asset account to mint completion NFT
     #[account(mut)]
     pub asset: UncheckedAccount<'info>,
 
@@ -91,7 +91,7 @@ pub struct MintCompletionNFT<'info> {
     
     pub system_program: Program<'info, System>,
 
-    /// CHECK: This is the MPL Core program ID which is verified by the address constraint
+    /// CHECK:  MPL Core program ID which is verified by the address constraint
     #[account(address = MPL_CORE_ID)]
     pub mpl_core_program: UncheckedAccount<'info>,
 }
@@ -151,14 +151,10 @@ impl<'info> SubmitData<'info> {
 }
 
 impl<'info> MintCompletionNFT<'info> {
-    // Mints completion NFT as reward for study participation
+    // Mint completion NFT as reward for study participation
     pub fn mint_completion_nft(&mut self) -> Result<()> {
         let study = &self.study;
-        
-        // Extract submission data before mutable borrow
         let submission_timestamp = self.submission.submission_timestamp;
-        
-        // Use simple static metadata URI for template image
         let metadata_uri = COMPLETION_NFT_TEMPLATE_IMAGE.to_string();
         
         msg!("Creating Completion NFT with MPL Core attributes");

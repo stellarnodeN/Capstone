@@ -7,7 +7,10 @@
     "test:ipfs:dev": "NODE_ENV=development ts-node app/utils/test-ipfs.ts",
     "test:ipfs:staging": "NODE_ENV=staging ts-node app/utils/test-ipfs.ts",
     "test:ipfs:prod": "NODE_ENV=production ts-node app/utils/test-ipfs.ts",
-    "rebuild": "npm rebuild"
+    "rebuild": "npm rebuild",
+    "deploy:devnet": "anchor build && anchor deploy --provider.cluster devnet",
+    "test:devnet": "anchor test --provider.cluster devnet",
+    "ts-mocha": "ts-mocha -r dotenv/config -p ./tsconfig.json -t 2000000 tests/**/*.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",
@@ -22,6 +25,7 @@
     "@solana/web3.js": "^1.98.2",
     "@stablelib/base64": "^1.0.1",
     "@types/node": "^18.0.0",
+    "dotenv": "^17.2.1",
     "ipfs-http-client": "^56.0.1",
     "tweetnacl": "^1.0.3"
   },
@@ -35,5 +39,10 @@
     "ts-mocha": "^11.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "@solana/web3.js": "1.98.2"
+    }
   }
 }
