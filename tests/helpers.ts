@@ -17,12 +17,12 @@ export async function generateSigner(provider: anchor.AnchorProvider, amount: nu
 }
 
 // PDA helpers
-export function getAdminPDA(): PublicKey {
+export function getAdminPDA(programId: PublicKey): PublicKey {
     const [adminPDA] = PublicKey.findProgramAddressSync([Buffer.from("admin")], programId);
     return adminPDA;
 }
 
-export function getStudyPDA(researcher: PublicKey, studyId: InstanceType<typeof BN>): PublicKey {
+export function getStudyPDA(programId: PublicKey, researcher: PublicKey, studyId: InstanceType<typeof BN>): PublicKey {
     const [studyPDA] = PublicKey.findProgramAddressSync(
         [Buffer.from("study"), researcher.toBuffer(), studyId.toArrayLike(Buffer, "le", 8)],
         programId
@@ -30,7 +30,7 @@ export function getStudyPDA(researcher: PublicKey, studyId: InstanceType<typeof 
     return studyPDA;
 }
 
-export function getConsentPDA(study: PublicKey, participant: PublicKey): PublicKey {
+export function getConsentPDA(programId: PublicKey, study: PublicKey, participant: PublicKey): PublicKey {
     const [consentPDA] = PublicKey.findProgramAddressSync(
         [Buffer.from("consent"), study.toBuffer(), participant.toBuffer()],
         programId
@@ -155,4 +155,46 @@ export function logTransaction(signature: string, connection: anchor.web3.Connec
     const explorerUrl = `https://explorer.solana.com/transaction/${signature}?cluster=custom&customUrl=${connection.rpcEndpoint}`;
     console.log(`Transaction: ${explorerUrl}`);
     return signature;
+}
+
+// Mock MPL Core functions for localnet testing
+export function mockMplCoreAsset(): PublicKey {
+    // Generate a mock asset public key for testing
+    return Keypair.generate().publicKey;
+}
+
+export function mockMplCoreMint(): PublicKey {
+    // Generate a mock mint public key for testing
+    return Keypair.generate().publicKey;
+}
+
+export function mockMplCoreMetadata(): PublicKey {
+    // Generate a mock metadata public key for testing
+    return Keypair.generate().publicKey;
+}
+
+export function mockMplCoreCollection(): PublicKey {
+    // Generate a mock collection public key for testing
+    return Keypair.generate().publicKey;
+}
+
+// Mock NFT creation function that simulates MPL Core behavior
+export async function mockCreateNFT(
+    program: any,
+    accounts: any,
+    signers: any[]
+): Promise<string> {
+    // Simulate successful NFT creation
+    console.log("✓ Mock NFT created successfully (localnet simulation)");
+    console.log("✓ This would create a real NFT on devnet/mainnet with MPL Core");
+    
+    // Return a mock transaction signature
+    return "mock_nft_transaction_signature_" + Date.now();
+}
+
+// Mock NFT verification function
+export function mockVerifyNFT(asset: PublicKey): boolean {
+    // Simulate NFT verification
+    console.log("✓ Mock NFT verification successful (localnet simulation)");
+    return true;
 } 

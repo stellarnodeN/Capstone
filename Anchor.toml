@@ -17,8 +17,10 @@ mpl_core = "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "./programs/recru_search/Turbin3-wallet.json"
+
+
 
 [scripts]
 test = "pnpm run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

@@ -10,6 +10,5 @@ test-ledger/
 .env.*
 *.log
 .DS_Store
-*.md
 *-wallet.json
 app/
