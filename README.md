@@ -144,40 +144,41 @@ graph TD
 
 ### Study Lifecycle States
 ```mermaid
-stateDiagram-v2
-    [*] --> Draft
-    Draft --> Published : publish_study()
-    Published --> Active : transition_study_state()
-    Active --> Closed : close_study()
-    Closed --> [*]
+graph TD
+    Start([Start]) --> Draft[Draft State]
+    Draft --> Published[Published State]
+    Published --> Active[Active State]
+    Active --> Closed[Closed State]
+    Closed --> End([End])
     
-    note right of Draft
-        - Study created
-        - Eligibility set
-        - Reward vault created
-        - Not visible to participants
-    end note
+    Draft --> Draft1[Study Created]
+    Draft --> Draft2[Eligibility Set]
+    Draft --> Draft3[Reward Vault Created]
+    Draft --> Draft4[Not Visible to Participants]
     
-    note right of Published
-        - Accepting enrollments
-        - Participants can join
-        - Consent NFTs minted
-        - Enrollment period active
-    end note
+    Published --> Published1[Accepting Enrollments]
+    Published --> Published2[Participants Can Join]
+    Published --> Published3[Consent NFTs Minted]
+    Published --> Published4[Enrollment Period Active]
     
-    note right of Active
-        - Data collection active
-        - Participants submit data
-        - Completion NFTs minted
-        - Rewards distributed
-    end note
+    Active --> Active1[Data Collection Active]
+    Active --> Active2[Participants Submit Data]
+    Active --> Active3[Completion NFTs Minted]
+    Active --> Active4[Rewards Distributed]
     
-    note right of Closed
-        - No new enrollments
-        - Data collection ended
-        - Final rewards processed
-        - Study archived
-    end note
+    Closed --> Closed1[No New Enrollments]
+    Closed --> Closed2[Data Collection Ended]
+    Closed --> Closed3[Final Rewards Processed]
+    Closed --> Closed4[Study Archived]
+    
+    Draft -.->|publish_study()| Published
+    Published -.->|transition_study_state()| Active
+    Active -.->|close_study()| Closed
+    
+    style Draft fill:#e1f5fe
+    style Published fill:#f3e5f5
+    style Active fill:#e8f5e8
+    style Closed fill:#fff3e0
 ```
 
 ### Detailed Participant Journey
