@@ -1,68 +1,41 @@
 # RecruSearch
 
-A decentralized research recruitment and data collection platform built on Solana using Anchor framework. RecruSearch enables researchers to conduct studies with transparent participant recruitment, on -chain consent, secure data collection, and automated reward distribution through NFTs and tokens.
+> **Decentralized Research Participation Platform on Solana**  
+> A blockchain-based protocol enabling researchers to create studies and participants to earn rewards through NFT-gated research participation.
 
-## Project Overview
+---
 
-RecruSearch revolutionizes research recruitment by:
-- **Decentralized Study Management**: Researchers can create, publish, and manage studies on-chain
-- **NFT-Based Consent Management**: Participants mint consent NFTs upon enrollment
-- **Secure Data Collection**: Encrypted data submission with IPFS storage
-- **Automated Rewards**: Token-based incentives with completion NFTs
-- **Transparent Governance**: Protocol-level admin controls and fee management
+RecruSearch is a comprehensive decentralized research recruitment and data collection platform built on Solana using the Anchor framework. The platform enables researchers to create, manage, and execute research studies through smart contracts while providing participants with transparent enrollment processes, on-chain consent management, and automated reward distribution.
 
-## Architecture
+The core architecture features NFT-gated participation where participants receive Consent NFTs upon enrollment and Completion NFTs upon successful study completion. The system implements configurable eligibility criteria including age, gender, and location requirements with on-chain validation. Research data is securely stored on IPFS with cryptographic hashing, ensuring data integrity and privacy while maintaining decentralization.
 
-### Core Components
+Built with Rust smart contracts and comprehensive TypeScript testing, RecruSearch supports a complete study lifecycle from Draft to Published, Active, and Closed states with automated transitions. The platform integrates MPL Core for NFT operations and SPL Token for reward distribution. Security features include immutable consent records with revocation capabilities, role-based access control, and complete transaction audit trails for compliance and transparency.
 
-```
-RecruSearch Protocol
-├── Admin Layer (Protocol Governance)
-├── Study Management (Creation, Publishing, State Transitions)
-├── Participant Management (Enrollment, Eligibility, Consent)
-├── Data Collection (Submission, Verification, Storage)
-├── Reward System (Vaults, Distribution, NFTs)
-└── Survey Schema Management (Structure, Finalization, Export)
-```
-
-### Technology Stack
-
-- **Blockchain**: Solana
-- **Framework**: Anchor (Rust)
-- **NFT Standard**: MPL Core (Metaplex)
-- **Token Standard**: SPL Token
-- **Storage**: IPFS (decentralized)
-- **Language**: Rust
+RecruSearch serves academic research, clinical trials, market research, social science experiments, and decentralized research communities, providing a robust foundation for blockchain-based research participation with automated incentive structures and transparent governance.
 
 ## Core Functions
 
-### 1. Protocol Administration
-- **`initialize_protocol`**: Sets up protocol with configurable fees and duration limits
-- **Protocol Configuration**: 
-  - Protocol fee: 2.5% (default), max 10%
-  - Study duration: 1 day to 1 year
-  - Enrollment window: minimum 1 hour
+- **initialize_protocol()** - Sets up protocol parameters and admin state
+- **create_study()** - Creates new research studies with configurable parameters
+- **set_eligibility_criteria()** - Defines participant requirements and constraints
+- **create_reward_vault()** - Establishes token vaults for study rewards
+- **publish_study()** - Transitions studies from Draft to Published state
+- **mint_consent_nft()** - Enrolls participants and mints consent NFTs
+- **submit_data()** - Collects and stores research data on IPFS
+- **mint_completion_nft()** - Rewards participants with completion NFTs
+- **distribute_reward()** - Transfers tokens to eligible participants
+- **close_study()** - Finalizes studies and archives data
 
-### 2. Study Management
-- **`create_study`**: Creates new research study with metadata and constraints
-- **`publish_study`**: Makes study available for participant enrollment
-- **`close_study`**: Permanently closes study to new enrollments
-- **`transition_study_state`**: Automatic state transitions based on time
+## Architecture
 
-### 3. Participant Management
-- **`set_eligibility_criteria`**: Defines participant requirements
-- **`mint_consent_nft`**: Enrolls participants and mints consent NFTs
-- **`revoke_consent`**: Allows participants to withdraw (burns NFT)
+The platform uses Program Derived Addresses (PDAs) for account management, MPL Core for NFT operations, and IPFS for decentralized data storage. Smart contracts handle all business logic including eligibility validation, consent management, and automated reward distribution.
 
-### 4. Data Collection
-- **`submit_data`**: Submits encrypted research data with IPFS CID
-- **`mint_completion_nft`**: Rewards participants with completion NFTs
-- **`create_survey_schema`**: Defines survey structure and requirements
-- **`finalize_survey_schema`**: Locks survey schema for data collection
+## Getting Started
 
-### 5. Reward System
-- **`create_reward_vault`**: Establishes token vault for study rewards
-- **`distribute_reward`**: Transfers tokens to participants after verification
+1. Install dependencies: `pnpm install`
+2. Build the program: `anchor build`
+3. Run tests: `anchor test`
+4. Deploy to localnet: `anchor deploy`
 
 ## User Flow & Interactions
 
@@ -295,116 +268,6 @@ Published ── transition_study_state() ──► Active
 Active ───── close_study() ──────► Closed
 ```
 
-### Detailed Participant Journey
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        DETAILED PARTICIPANT JOURNEY                         │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              DISCOVERY PHASE                                │
-└─────────────────────────────────────────────────────────────────────────────┘
-    [Browse Studies] ──► [Filter by Criteria] ──► [Select Study]
-        │                       │                       │
-        ▼                       ▼                       ▼
-    • View available        • Age requirements      • Study details
-      studies              • Gender criteria       • Reward amount
-    • Study categories     • Location filters      • Time commitment
-    • Reward ranges        • Participation type    • Requirements
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                             ENROLLMENT PHASE                                │
-└─────────────────────────────────────────────────────────────────────────────┘
-    [Select Study] ──► [Check Eligibility] ──► [Provide Consent] ──► [Mint Consent NFT]
-        │                       │                       │                       │
-        ▼                       ▼                       ▼                       ▼
-    • Study selection      • Age verification      • Personal info        • NFT minted
-    • Requirements         • Gender matching       • Consent agreement    • Enrollment complete
-    • Timeline             • Location validation   • Legal compliance     • Study access granted
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            PARTICIPATION PHASE                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-    [Mint Consent NFT] ──► [Receive Materials] ──► [Complete Requirements] ──► [Submit Data]
-        │                       │                       │                       │
-        ▼                       ▼                       ▼                       ▼
-    • NFT ownership        • Study instructions    • Survey completion     • Data encryption
-    • Study access         • Research materials    • Task performance      • IPFS upload
-    • Participant status   • Timeline details      • Quality standards     • Hash submission
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              REWARD PHASE                                   │
-└─────────────────────────────────────────────────────────────────────────────┘
-    [Submit Data] ──► [Data Verification] ──► [Mint Completion NFT] ──► [Claim Tokens]
-        │                       │                       │                       │
-        ▼                       ▼                       ▼                       ▼
-    • Data submitted        • Quality review        • Achievement NFT       • Token transfer
-    • Hash recorded         • Compliance check      • Completion proof      • Reward received
-    • Timestamp logged      • Approval process      • Permanent record      • Study complete
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              EXIT OPTIONS                                   │
-└─────────────────────────────────────────────────────────────────────────────┘
-    [Claim Tokens] ──► [Study Complete]          [Mint Consent NFT] ──► [Revoke Consent]
-        │                       │                       │                       │
-        ▼                       ▼                       ▼                       ▼
-    • Tokens received       • Final status          • Early withdrawal      • Consent revoked
-    • Achievement unlocked  • Data archived         • Exit request          • NFT burned
-    • Study concluded       • Record maintained      • Partial completion    • Access revoked
-```
-
-### Researcher Management Flow
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        RESEARCHER MANAGEMENT FLOW                           │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              STUDY CREATION                                 │
-└─────────────────────────────────────────────────────────────────────────────┘
-    [Initialize Protocol] ──► [Create Study] ──► [Configure Parameters] ──► [Set Eligibility] ──► [Create Reward Vault]
-        │                           │                       │                       │                       │
-        ▼                           ▼                       ▼                       ▼                       ▼
-    • Protocol setup          • Study metadata        • Duration limits      • Age requirements      • Token vault
-    • Fee configuration       • Title & description   • Enrollment periods   • Gender criteria       • Initial deposit
-    • Duration constraints    • Researcher info       • Participant limits   • Location filters      • Balance verification
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                             STUDY MANAGEMENT                                │
-└─────────────────────────────────────────────────────────────────────────────┘
-    [Create Reward Vault] ──► [Publish Study] ──► [Monitor Progress] ──► [Adjust Parameters]
-        │                           │                       │                       │
-        ▼                           ▼                       ▼                       ▼
-    • Vault established       • Study visible         • Enrollment tracking  • Parameter updates
-    • Tokens deposited        • Accepting participants • Progress metrics    • Timeline adjustments
-    • Ready for rewards       • Open enrollment       • Performance data     • Requirement changes
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                             DATA COLLECTION                                │
-└─────────────────────────────────────────────────────────────────────────────┘
-    [Adjust Parameters] ──► [Review Submissions] ──► [Verify Quality] ──► [Approve Data]
-        │                           │                       │                       │
-        ▼                           ▼                       ▼                       ▼
-    • Final adjustments       • Submission review      • Quality assessment   • Data approval
-    • Study optimization      • Participant data       • Compliance check     • Completion tracking
-    • Requirement updates     • Progress monitoring    • Standards verification • Reward eligibility
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            STUDY COMPLETION                                 │
-└─────────────────────────────────────────────────────────────────────────────┘
-    [Approve Data] ──► [Distribute Rewards] ──► [Close Study] ──► [Export Data]
-        │                       │                       │                       │
-        ▼                       ▼                       ▼                       ▼
-    • Data approved          • Token distribution      • Study closure        • Data export
-    • Quality confirmed      • Automated rewards       • Final processing     • Research results
-    • Completion verified    • Participant payments    • Archive study        • Analysis ready
-```
-
-## Data Structures
-
-### Core Accounts
 
 #### AdminAccount
 ```rust
