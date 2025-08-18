@@ -67,180 +67,339 @@ RecruSearch Protocol
 ## User Flow & Interactions
 
 ### Researcher Workflow
-```mermaid
-graph TD
-    A[Initialize Protocol] --> B[Create Study]
-    B --> C[Set Eligibility Criteria]
-    C --> D[Create Reward Vault]
-    D --> E[Publish Study]
-    E --> F[Monitor Enrollments]
-    F --> G[Review Submissions]
-    G --> H[Distribute Rewards]
-    H --> I[Close Study]
-    
-    B --> B1[Define Study Parameters]
-    B1 --> B2[Set Enrollment Periods]
-    B2 --> B3[Configure Reward Amount]
-    
-    C --> C1[Age Requirements]
-    C1 --> C2[Gender Criteria]
-    C2 --> C3[Location Constraints]
-    
-    D --> D1[Deposit Initial Tokens]
-    D1 --> D2[Verify Sufficient Balance]
-    
-    E --> E1[Study Becomes Visible]
-    E1 --> E2[Accepting Participants]
-    
-    F --> F1[Track Enrollment Count]
-    F1 --> F2[Monitor Study Progress]
-    
-    G --> G1[Verify Data Quality]
-    G1 --> G2[Check Completion Status]
-    
-    H --> H1[Automated Distribution]
-    H1 --> H2[Track Reward Metrics]
-    
-    I --> I1[No New Enrollments]
-    I1 --> I2[Finalize Study Data]
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           RESEARCHER WORKFLOW                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    [START]
+        │
+        ▼
+    ┌─────────────────┐
+    │ Initialize      │
+    │ Protocol        │
+    └─────────────────┘
+        │
+        ▼
+    ┌─────────────────┐
+    │ Create Study    │
+    └─────────────────┘
+        │
+        ├─► Define Study Parameters
+        ├─► Set Enrollment Periods  
+        └─► Configure Reward Amount
+        │
+        ▼
+    ┌─────────────────┐
+    │ Set Eligibility │
+    │ Criteria        │
+    └─────────────────┘
+        │
+        ├─► Age Requirements
+        ├─► Gender Criteria
+        └─► Location Constraints
+        │
+        ▼
+    ┌─────────────────┐
+    │ Create Reward   │
+    │ Vault           │
+    └─────────────────┘
+        │
+        ├─► Deposit Initial Tokens
+        └─► Verify Sufficient Balance
+        │
+        ▼
+    ┌─────────────────┐
+    │ Publish Study   │
+    └─────────────────┘
+        │
+        ├─► Study Becomes Visible
+        └─► Accepting Participants
+        │
+        ▼
+    ┌─────────────────┐
+    │ Monitor         │
+    │ Enrollments     │
+    └─────────────────┘
+        │
+        ├─► Track Enrollment Count
+        └─► Monitor Study Progress
+        │
+        ▼
+    ┌─────────────────┐
+    │ Review          │
+    │ Submissions     │
+    └─────────────────┘
+        │
+        ├─► Verify Data Quality
+        └─► Check Completion Status
+        │
+        ▼
+    ┌─────────────────┐
+    │ Distribute      │
+    │ Rewards         │
+    └─────────────────┘
+        │
+        ├─► Automated Distribution
+        └─► Track Reward Metrics
+        │
+        ▼
+    ┌─────────────────┐
+    │ Close Study     │
+    └─────────────────┘
+        │
+        ├─► No New Enrollments
+        └─► Finalize Study Data
+        │
+        ▼
+    [END]
 ```
 
 ### Participant Workflow
-```mermaid
-graph TD
-    A[Browse Studies] --> B[Check Eligibility]
-    B --> C[Enroll & Mint Consent NFT]
-    C --> D[Submit Research Data]
-    D --> E[Mint Completion NFT]
-    E --> F[Claim Token Rewards]
-    
-    A --> A1[View Study Details]
-    A1 --> A2[Read Requirements]
-    A2 --> A3[Check Reward Amount]
-    
-    B --> B1[Verify Age Range]
-    B1 --> B2[Confirm Gender Match]
-    B2 --> B3[Validate Location]
-    B3 --> B4[Eligibility Confirmed]
-    
-    C --> C1[Provide Personal Info]
-    C1 --> C2[Sign Consent Agreement]
-    C2 --> C3[Receive Consent NFT]
-    C3 --> C4[Study Enrollment Complete]
-    
-    D --> D1[Complete Survey/Study]
-    D1 --> D2[Encrypt Data]
-    D2 --> D3[Upload to IPFS]
-    D3 --> D4[Submit Data Hash]
-    
-    E --> E1[Data Verification]
-    E1 --> E2[Quality Check Passed]
-    E2 --> E3[Receive Completion NFT]
-    
-    F --> F1[Wait 24h Cooldown]
-    F1 --> F2[Claim Tokens]
-    F2 --> F3[Reward Distribution]
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          PARTICIPANT WORKFLOW                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    [START]
+        │
+        ▼
+    ┌─────────────────┐
+    │ Browse Studies  │
+    └─────────────────┘
+        │
+        ├─► View Study Details
+        ├─► Read Requirements
+        └─► Check Reward Amount
+        │
+        ▼
+    ┌─────────────────┐
+    │ Check           │
+    │ Eligibility     │
+    └─────────────────┘
+        │
+        ├─► Verify Age Range
+        ├─► Confirm Gender Match
+        ├─► Validate Location
+        └─► Eligibility Confirmed
+        │
+        ▼
+    ┌─────────────────┐
+    │ Enroll & Mint   │
+    │ Consent NFT     │
+    └─────────────────┘
+        │
+        ├─► Provide Personal Info
+        ├─► Sign Consent Agreement
+        ├─► Receive Consent NFT
+        └─► Study Enrollment Complete
+        │
+        ▼
+    ┌─────────────────┐
+    │ Submit Research │
+    │ Data            │
+    └─────────────────┘
+        │
+        ├─► Complete Survey/Study
+        ├─► Encrypt Data
+        ├─► Upload to IPFS
+        └─► Submit Data Hash
+        │
+        ▼
+    ┌─────────────────┐
+    │ Mint Completion │
+    │ NFT             │
+    └─────────────────┘
+        │
+        ├─► Data Verification
+        ├─► Quality Check Passed
+        └─► Receive Completion NFT
+        │
+        ▼
+    ┌─────────────────┐
+    │ Claim Token     │
+    │ Rewards         │
+    └─────────────────┘
+        │
+        ├─► Wait 24h Cooldown
+        ├─► Claim Tokens
+        └─► Reward Distribution
+        │
+        ▼
+    [END]
 ```
 
 ### Study Lifecycle States
-```mermaid
-graph TD
-    Start([Start]) --> Draft[Draft State]
-    Draft --> Published[Published State]
-    Published --> Active[Active State]
-    Active --> Closed[Closed State]
-    Closed --> End([End])
-    
-    Draft --> Draft1[Study Created]
-    Draft --> Draft2[Eligibility Set]
-    Draft --> Draft3[Reward Vault Created]
-    Draft --> Draft4[Not Visible to Participants]
-    
-    Published --> Published1[Accepting Enrollments]
-    Published --> Published2[Participants Can Join]
-    Published --> Published3[Consent NFTs Minted]
-    Published --> Published4[Enrollment Period Active]
-    
-    Active --> Active1[Data Collection Active]
-    Active --> Active2[Participants Submit Data]
-    Active --> Active3[Completion NFTs Minted]
-    Active --> Active4[Rewards Distributed]
-    
-    Closed --> Closed1[No New Enrollments]
-    Closed --> Closed2[Data Collection Ended]
-    Closed --> Closed3[Final Rewards Processed]
-    Closed --> Closed4[Study Archived]
-    
-    Draft -.->|publish_study()| Published
-    Published -.->|transition_study_state()| Active
-    Active -.->|close_study()| Closed
-    
-    style Draft fill:#e1f5fe
-    style Published fill:#f3e5f5
-    style Active fill:#e8f5e8
-    style Closed fill:#fff3e0
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           STUDY LIFECYCLE FLOW                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    [START] 
+        │
+        ▼
+    ┌─────────────┐
+    │   DRAFT     │ ◄─── Study Creation Phase
+    └─────────────┘
+        │
+        │ • Study Created
+        │ • Eligibility Criteria Set
+        │ • Reward Vault Created
+        │ • Not Visible to Participants
+        │
+        │ publish_study()
+        ▼
+    ┌─────────────┐
+    │ PUBLISHED   │ ◄─── Enrollment Phase
+    └─────────────┘
+        │
+        │ • Accepting Enrollments
+        │ • Participants Can Join
+        │ • Consent NFTs Minted
+        │ • Enrollment Period Active
+        │
+        │ transition_study_state()
+        ▼
+    ┌─────────────┐
+    │   ACTIVE    │ ◄─── Data Collection Phase
+    └─────────────┘
+        │
+        │ • Data Collection Active
+        │ • Participants Submit Data
+        │ • Completion NFTs Minted
+        │ • Rewards Distributed
+        │
+        │ close_study()
+        ▼
+    ┌─────────────┐
+    │   CLOSED    │ ◄─── Completion Phase
+    └─────────────┘
+        │
+        │ • No New Enrollments
+        │ • Data Collection Ended
+        │ • Final Rewards Processed
+        │ • Study Archived
+        │
+        ▼
+    [END]
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           STATE TRANSITIONS                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Draft ────── publish_study() ──────► Published
+Published ── transition_study_state() ──► Active  
+Active ───── close_study() ──────► Closed
 ```
 
 ### Detailed Participant Journey
-```mermaid
-graph LR
-    subgraph "Discovery Phase"
-        A[Browse Studies] --> B[Filter by Criteria]
-        B --> C[Select Study]
-    end
-    
-    subgraph "Enrollment Phase"
-        C --> D[Check Eligibility]
-        D --> E[Provide Consent]
-        E --> F[Mint Consent NFT]
-    end
-    
-    subgraph "Participation Phase"
-        F --> G[Receive Study Materials]
-        G --> H[Complete Requirements]
-        H --> I[Submit Data]
-    end
-    
-    subgraph "Reward Phase"
-        I --> J[Data Verification]
-        J --> K[Mint Completion NFT]
-        K --> L[Claim Tokens]
-    end
-    
-    subgraph "Exit Options"
-        L --> M[Study Complete]
-        F --> N[Revoke Consent]
-        N --> O[Burn Consent NFT]
-    end
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        DETAILED PARTICIPANT JOURNEY                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              DISCOVERY PHASE                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+    [Browse Studies] ──► [Filter by Criteria] ──► [Select Study]
+        │                       │                       │
+        ▼                       ▼                       ▼
+    • View available        • Age requirements      • Study details
+      studies              • Gender criteria       • Reward amount
+    • Study categories     • Location filters      • Time commitment
+    • Reward ranges        • Participation type    • Requirements
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                             ENROLLMENT PHASE                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+    [Select Study] ──► [Check Eligibility] ──► [Provide Consent] ──► [Mint Consent NFT]
+        │                       │                       │                       │
+        ▼                       ▼                       ▼                       ▼
+    • Study selection      • Age verification      • Personal info        • NFT minted
+    • Requirements         • Gender matching       • Consent agreement    • Enrollment complete
+    • Timeline             • Location validation   • Legal compliance     • Study access granted
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            PARTICIPATION PHASE                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+    [Mint Consent NFT] ──► [Receive Materials] ──► [Complete Requirements] ──► [Submit Data]
+        │                       │                       │                       │
+        ▼                       ▼                       ▼                       ▼
+    • NFT ownership        • Study instructions    • Survey completion     • Data encryption
+    • Study access         • Research materials    • Task performance      • IPFS upload
+    • Participant status   • Timeline details      • Quality standards     • Hash submission
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              REWARD PHASE                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+    [Submit Data] ──► [Data Verification] ──► [Mint Completion NFT] ──► [Claim Tokens]
+        │                       │                       │                       │
+        ▼                       ▼                       ▼                       ▼
+    • Data submitted        • Quality review        • Achievement NFT       • Token transfer
+    • Hash recorded         • Compliance check      • Completion proof      • Reward received
+    • Timestamp logged      • Approval process      • Permanent record      • Study complete
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              EXIT OPTIONS                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+    [Claim Tokens] ──► [Study Complete]          [Mint Consent NFT] ──► [Revoke Consent]
+        │                       │                       │                       │
+        ▼                       ▼                       ▼                       ▼
+    • Tokens received       • Final status          • Early withdrawal      • Consent revoked
+    • Achievement unlocked  • Data archived         • Exit request          • NFT burned
+    • Study concluded       • Record maintained      • Partial completion    • Access revoked
 ```
 
 ### Researcher Management Flow
-```mermaid
-graph LR
-    subgraph "Study Creation"
-        A[Initialize Protocol] --> B[Create Study]
-        B --> C[Configure Parameters]
-        C --> D[Set Eligibility]
-        D --> E[Create Reward Vault]
-    end
-    
-    subgraph "Study Management"
-        E --> F[Publish Study]
-        F --> G[Monitor Progress]
-        G --> H[Adjust Parameters]
-    end
-    
-    subgraph "Data Collection"
-        H --> I[Review Submissions]
-        I --> J[Verify Quality]
-        J --> K[Approve Data]
-    end
-    
-    subgraph "Study Completion"
-        K --> L[Distribute Rewards]
-        L --> M[Close Study]
-        M --> N[Export Data]
-    end
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        RESEARCHER MANAGEMENT FLOW                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              STUDY CREATION                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+    [Initialize Protocol] ──► [Create Study] ──► [Configure Parameters] ──► [Set Eligibility] ──► [Create Reward Vault]
+        │                           │                       │                       │                       │
+        ▼                           ▼                       ▼                       ▼                       ▼
+    • Protocol setup          • Study metadata        • Duration limits      • Age requirements      • Token vault
+    • Fee configuration       • Title & description   • Enrollment periods   • Gender criteria       • Initial deposit
+    • Duration constraints    • Researcher info       • Participant limits   • Location filters      • Balance verification
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                             STUDY MANAGEMENT                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+    [Create Reward Vault] ──► [Publish Study] ──► [Monitor Progress] ──► [Adjust Parameters]
+        │                           │                       │                       │
+        ▼                           ▼                       ▼                       ▼
+    • Vault established       • Study visible         • Enrollment tracking  • Parameter updates
+    • Tokens deposited        • Accepting participants • Progress metrics    • Timeline adjustments
+    • Ready for rewards       • Open enrollment       • Performance data     • Requirement changes
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                             DATA COLLECTION                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+    [Adjust Parameters] ──► [Review Submissions] ──► [Verify Quality] ──► [Approve Data]
+        │                           │                       │                       │
+        ▼                           ▼                       ▼                       ▼
+    • Final adjustments       • Submission review      • Quality assessment   • Data approval
+    • Study optimization      • Participant data       • Compliance check     • Completion tracking
+    • Requirement updates     • Progress monitoring    • Standards verification • Reward eligibility
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            STUDY COMPLETION                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+    [Approve Data] ──► [Distribute Rewards] ──► [Close Study] ──► [Export Data]
+        │                       │                       │                       │
+        ▼                       ▼                       ▼                       ▼
+    • Data approved          • Token distribution      • Study closure        • Data export
+    • Quality confirmed      • Automated rewards       • Final processing     • Research results
+    • Completion verified    • Participant payments    • Archive study        • Analysis ready
 ```
 
 ## Data Structures
